@@ -179,4 +179,79 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
             _httpClient?.Dispose();
         }
     }
+
+    public async Task<byte[]> DownloadAttachmentAsync(string attachmentUrl)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(attachmentUrl);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsByteArrayAsync();
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new InvalidOperationException($"Failed to download attachment: {ex.Message}", ex);
+        }
+    }
+
+    public async Task<Ticket> UploadAttachmentAsync(long ticketId, string filePath, string? fileName = null)
+    {
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"File not found: {filePath}");
+        }
+
+        fileName ??= Path.GetFileName(filePath);
+        var fileBytes = await File.ReadAllBytesAsync(filePath);
+
+        // Freshdesk expects attachments to be added when updating the ticket
+        using var content = new MultipartFormDataContent();
+
+        // Add the file
+        var fileContent = new ByteArrayContent(fileBytes);
+        fileContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
+        {
+            Name = "\"attachments[]\"",
+            FileName = $"\"{fileName}\""
+        };
+        content.Add(fileContent);
+
+        try
+        {
+            // Use PUT to update ticket with attachment
+            var response = await _httpClient.PutAsync($"api/v2/tickets/{ticketId}", content);
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync();
+            var ticket = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.Ticket);
+
+            return ticket ?? throw new InvalidOperationException("No ticket returned from API");
+        }
+        catch (HttpRequestException ex)
+        {
+            throw new InvalidOperationException($"Failed to upload attachment: {ex.Message}", ex);
+        }
+    }
+
+    private static string GetMimeType(string filePath)
+    {
+        var extension = Path.GetExtension(filePath).ToLowerInvariant();
+        return extension switch
+        {
+            ".pdf" => "application/pdf",
+            ".txt" => "text/plain",
+            ".json" => "application/json",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".zip" => "application/zip",
+            ".doc" => "application/msword",
+            ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".xls" => "application/vnd.ms-excel",
+            ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".csv" => "text/csv",
+            ".xml" => "application/xml",
+            _ => "application/octet-stream"
+        };
+    }
 }
