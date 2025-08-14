@@ -151,13 +151,13 @@ public static class OutputFormatter
     public static void PrintTicketTree(Ticket ticket, Conversation[]? conversations)
     {
         Console.WriteLine($"Ticket #{ticket.Id}: {ticket.Subject} [{ticket.Status}]");
-        
+
         // Show summary
         int replyCount = conversations?.Count(c => !c.Private) ?? 0;
         int noteCount = conversations?.Count(c => c.Private) ?? 0;
         int attachmentCount = ticket.Attachments?.Length ?? 0;
         long totalAttachmentSize = ticket.Attachments?.Sum(a => a.Size) ?? 0;
-        
+
         Console.WriteLine($"Summary: {replyCount} replies, {noteCount} notes, {attachmentCount} attachments ({FormatFileSize(totalAttachmentSize)})");
         Console.WriteLine();
 
@@ -174,10 +174,10 @@ public static class OutputFormatter
             bool isLast = i == conversations.Length - 1;
             string prefix = isLast ? "└── " : "├── ";
             string childPrefix = isLast ? "    " : "│   ";
-            
+
             string typeIndicator = conv.Private ? "[Note]" : conv.Incoming ? "[Customer]" : "[Agent]";
             Console.WriteLine($"{prefix}{conv.CreatedAt:yyyy-MM-dd HH:mm} - {typeIndicator}");
-            
+
             // Show attachments for this conversation
             if (conv.Attachments?.Length > 0)
             {
@@ -196,7 +196,7 @@ public static class OutputFormatter
     {
         // Print basic ticket details first
         PrintTicketDetails(ticket, "text");
-        
+
         if (conversations == null || conversations.Length == 0)
         {
             Console.WriteLine("\nNo conversations found.");
@@ -213,7 +213,7 @@ public static class OutputFormatter
             string typeLabel = conv.Private ? "INTERNAL NOTE" : conv.Incoming ? "CUSTOMER" : "AGENT";
             Console.WriteLine($"[{typeLabel}] {conv.CreatedAt:yyyy-MM-dd HH:mm:ss}");
             Console.WriteLine(new string('-', 30));
-            
+
             // Show plain text body
             if (!string.IsNullOrEmpty(conv.BodyText))
             {
@@ -225,7 +225,7 @@ public static class OutputFormatter
                 var plainText = System.Text.RegularExpressions.Regex.Replace(conv.Body, "<.*?>", "");
                 Console.WriteLine(plainText);
             }
-            
+
             // Show attachments
             if (conv.Attachments?.Length > 0)
             {
