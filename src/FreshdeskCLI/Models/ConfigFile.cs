@@ -9,15 +9,15 @@ public sealed class ConfigFile
     public bool? AutoRetry { get; set; }
     public int? RetryCount { get; set; }
     public string? OutputFormat { get; set; }
-    
+
     public bool IsValid()
     {
-        return !string.IsNullOrWhiteSpace(Domain) && 
+        return !string.IsNullOrWhiteSpace(Domain) &&
                !string.IsNullOrWhiteSpace(ApiKey) &&
                Domain.Contains('.') &&
                ApiKey.Length > 10;
     }
-    
+
     public string GetBaseUrl()
     {
         var domain = Domain.StartsWith("https://") ? Domain : $"https://{Domain}";

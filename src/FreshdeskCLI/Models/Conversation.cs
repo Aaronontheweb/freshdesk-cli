@@ -16,7 +16,7 @@ public sealed class Conversation
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public Attachment[] Attachments { get; set; } = [];
-    
+
     public string SourceText => Source switch
     {
         TicketSource.Email => "Email",

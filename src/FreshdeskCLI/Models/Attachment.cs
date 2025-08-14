@@ -11,13 +11,13 @@ public sealed class Attachment
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public string AttachmentUrl { get; set; } = string.Empty;
-    
+
     [JsonIgnore]
     public string? LocalPath { get; set; }
-    
+
     [JsonIgnore]
     public bool IsDownloaded { get; set; }
-    
+
     public string FormattedSize => Size switch
     {
         < 1024 => $"{Size} B",

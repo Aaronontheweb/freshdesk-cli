@@ -27,7 +27,7 @@ public sealed class DateTimeOffsetConverter : JsonConverter<DateTimeOffset>
     {
         return DateTimeOffset.Parse(reader.GetString()!);
     }
-    
+
     public override void Write(Utf8JsonWriter writer, DateTimeOffset value, JsonSerializerOptions options)
     {
         writer.WriteStringValue(value.ToString("O"));
@@ -41,7 +41,7 @@ public sealed class NullableDateTimeOffsetConverter : JsonConverter<DateTimeOffs
         var str = reader.GetString();
         return string.IsNullOrEmpty(str) ? null : DateTimeOffset.Parse(str);
     }
-    
+
     public override void Write(Utf8JsonWriter writer, DateTimeOffset? value, JsonSerializerOptions options)
     {
         if (value.HasValue)

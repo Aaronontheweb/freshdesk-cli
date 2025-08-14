@@ -24,8 +24,8 @@ if (args.Length > 0 && args[0] == "--test-aot")
         CreatedAt = DateTimeOffset.Now,
         UpdatedAt = DateTimeOffset.Now,
         Attachments = [
-            new Attachment 
-            { 
+            new Attachment
+            {
                 Id = 1,
                 Name = "test.pdf",
                 Size = 12345,
@@ -36,14 +36,14 @@ if (args.Length > 0 && args[0] == "--test-aot")
             }
         ]
     };
-    
+
     var json = JsonSerializer.Serialize(testTicket, FreshdeskJsonContext.Default.Ticket);
     Console.WriteLine($"AOT Serialization test passed: {json.Length} bytes");
-    
+
     // Test deserialization
     var deserialized = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.Ticket);
     Console.WriteLine($"Deserialization test passed: Ticket #{deserialized?.Id} - {deserialized?.Subject}");
-    
+
     return 0;
 }
 

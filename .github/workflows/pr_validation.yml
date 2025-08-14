@@ -55,18 +55,14 @@ jobs:
           - os: ubuntu-latest
             runtime: linux-x64
             max-size-mb: 15
-          - os: ubuntu-latest
-            runtime: linux-arm64
-            max-size-mb: 15
           - os: windows-latest
             runtime: win-x64
             max-size-mb: 15
           - os: macos-latest
             runtime: osx-x64
             max-size-mb: 15
-          - os: macos-latest
-            runtime: osx-arm64
-            max-size-mb: 15
+          # Note: Cross-compilation for ARM64 requires special setup
+          # For now, we'll only validate native builds on CI
 
     steps:
       - name: "Checkout"

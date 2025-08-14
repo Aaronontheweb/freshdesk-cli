@@ -23,7 +23,7 @@ public sealed class Ticket
     public bool Spam { get; set; }
     public Attachment[] Attachments { get; set; } = [];
     public Conversation[]? Conversations { get; set; }
-    
+
     public string StatusText => Status switch
     {
         TicketStatus.Open => "Open",
@@ -34,7 +34,7 @@ public sealed class Ticket
         TicketStatus.WaitingOnThirdParty => "Waiting on Third Party",
         _ => $"Unknown ({Status})"
     };
-    
+
     public string PriorityText => Priority switch
     {
         TicketPriority.Low => "Low",
