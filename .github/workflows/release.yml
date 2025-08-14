@@ -22,9 +22,6 @@ jobs:
           - os: ubuntu-latest
             runtime: linux-x64
             archive: tar.gz
-          - os: ubuntu-latest
-            runtime: linux-arm64
-            archive: tar.gz
           - os: windows-latest
             runtime: win-x64
             archive: zip
