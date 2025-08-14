@@ -9,7 +9,7 @@ public sealed class Conversation
     public bool Incoming { get; set; }
     public bool Private { get; set; }
     public TicketSource Source { get; set; }
-    public long? FromEmail { get; set; }
+    public string? FromEmail { get; set; }
     public string[] ToEmails { get; set; } = [];
     public string[] CcEmails { get; set; } = [];
     public string[] BccEmails { get; set; } = [];
