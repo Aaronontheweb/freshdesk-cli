@@ -1,3 +1,35 @@
+#### 1.0.1 August 14th 2025 ####
+
+**Bug Fix Release**
+
+This release fixes a critical JSON deserialization bug that prevented the `--tree` flag from working properly.
+
+**Bug Fixes:**
+- **Fixed `--tree` flag** - Resolved JSON deserialization error when viewing ticket conversations
+- **Improved API compatibility** - Fixed `FromEmail` field type to handle Freshdesk API inconsistencies
+
+**Technical Details:**
+- Changed `Conversation.FromEmail` from `long?` to `string?` to handle multiple API response formats
+- The Freshdesk API returns `from_email` as email strings, user IDs, or null values
+- This fix ensures all conversation data can be properly parsed and displayed
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64 (manual download - see Issue #25)
+
 #### 1.0.0 August 14th 2025 ####
 
 **First Stable Release**
