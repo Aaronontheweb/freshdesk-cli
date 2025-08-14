@@ -126,6 +126,35 @@ freshdesk ticket search "login issue"
 freshdesk ticket search "user@example.com"
 ```
 
+### Attachment Operations
+
+#### List Attachments
+
+```bash
+# List all attachments for a ticket
+freshdesk attachment list 123
+```
+
+#### Download Attachment
+
+```bash
+# Download an attachment
+freshdesk attachment download 123 456789
+
+# Download with custom output path
+freshdesk attachment download 123 456789 --output /path/to/save.pdf
+```
+
+#### Upload Attachment
+
+```bash
+# Upload a file to a ticket
+freshdesk attachment upload 123 /path/to/file.pdf
+
+# Upload with custom filename
+freshdesk attachment upload 123 /path/to/file.pdf --name "Report_2024.pdf"
+```
+
 ### Output Formats
 
 All list and get commands support multiple output formats:
@@ -166,6 +195,14 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 | `ticket create` | Create a new ticket |
 | `ticket update <id>` | Update ticket status/priority |
 | `ticket search <query>` | Search tickets |
+
+### Attachment Commands
+
+| Command | Description |
+|---------|-------------|
+| `attachment list <ticket-id>` | List attachments for a ticket |
+| `attachment download <ticket-id> <attachment-id>` | Download an attachment |
+| `attachment upload <ticket-id> <file>` | Upload file to ticket |
 
 ## Examples
 

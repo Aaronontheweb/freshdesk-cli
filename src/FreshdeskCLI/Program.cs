@@ -77,6 +77,9 @@ static void ShowHelp()
     Console.WriteLine("  ticket create     Create a new ticket");
     Console.WriteLine("  ticket update     Update ticket status/priority");
     Console.WriteLine("  ticket search     Search tickets");
+    Console.WriteLine("  attachment list    List attachments for a ticket");
+    Console.WriteLine("  attachment download Download an attachment");
+    Console.WriteLine("  attachment upload  Upload an attachment to a ticket");
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine("  --version, -v      Show version information");
@@ -97,6 +100,7 @@ static async Task<int> RouteCommand(string[] args, bool isReadOnly = false)
     {
         "config" => await HandleConfigCommand(args[1..], isReadOnly),
         "ticket" => await HandleTicketCommand(args[1..], isReadOnly),
+        "attachment" => await HandleAttachmentCommand(args[1..], isReadOnly),
         _ => ShowUnknownCommand(args[0])
     };
 }
@@ -557,5 +561,173 @@ static void TestAotCompatibility()
     {
         Console.WriteLine($"AOT test failed: {ex.Message}");
         Environment.Exit(1);
+    }
+}
+
+static async Task<int> HandleAttachmentCommand(string[] args, bool isReadOnly = false)
+{
+    if (args.Length < 1)
+    {
+        Console.WriteLine("Usage: freshdesk attachment <subcommand>");
+        Console.WriteLine("  list <ticket-id>     List attachments for a ticket");
+        Console.WriteLine("  download             Download an attachment");
+        Console.WriteLine("  upload               Upload an attachment to a ticket");
+        return 1;
+    }
+
+    var configService = new FreshdeskCLI.Services.ConfigurationService();
+    var config = await configService.LoadConfigAsync();
+
+    if (config == null || !config.IsValid)
+    {
+        Console.WriteLine("Invalid or missing configuration. Use 'freshdesk config set' to configure.");
+        return 1;
+    }
+
+    using var client = new FreshdeskCLI.Services.FreshdeskApiClient(config);
+
+    return args[0].ToLowerInvariant() switch
+    {
+        "list" => await HandleAttachmentList(args[1..], client),
+        "download" => await HandleAttachmentDownload(args[1..], client),
+        "upload" => isReadOnly ? ShowReadOnlyError("attachment upload") : await HandleAttachmentUpload(args[1..], client),
+        _ => ShowUnknownCommand($"attachment {args[0]}")
+    };
+}
+
+static async Task<int> HandleAttachmentList(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
+    {
+        Console.WriteLine("Usage: freshdesk attachment list <ticket-id>");
+        return 1;
+    }
+
+    var ticket = await client.GetTicketAsync(ticketId);
+    if (ticket == null)
+    {
+        Console.WriteLine($"Ticket {ticketId} not found.");
+        return 1;
+    }
+
+    if (ticket.Attachments == null || ticket.Attachments.Length == 0)
+    {
+        Console.WriteLine($"No attachments found for ticket #{ticketId}");
+        return 0;
+    }
+
+    Console.WriteLine($"Attachments for ticket #{ticketId}: {ticket.Subject}");
+    Console.WriteLine(new string('-', 80));
+    Console.WriteLine($"{"ID",-15} {"Name",-40} {"Size",-10} {"Type",-15}");
+    Console.WriteLine(new string('-', 80));
+
+    foreach (var attachment in ticket.Attachments)
+    {
+        var name = attachment.Name.Length > 40 ? attachment.Name[..37] + "..." : attachment.Name;
+        Console.WriteLine($"{attachment.Id,-15} {name,-40} {attachment.FormattedSize,-10} {attachment.ContentType,-15}");
+    }
+
+    Console.WriteLine($"\nTotal: {ticket.Attachments.Length} attachments");
+    return 0;
+}
+
+static async Task<int> HandleAttachmentDownload(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (args.Length < 2 || !long.TryParse(args[0], out var ticketId))
+    {
+        Console.WriteLine("Usage: freshdesk attachment download <ticket-id> <attachment-id> [--output <path>]");
+        return 1;
+    }
+
+    if (!long.TryParse(args[1], out var attachmentId))
+    {
+        Console.WriteLine("Invalid attachment ID");
+        return 1;
+    }
+
+    string? outputPath = null;
+    for (int i = 2; i < args.Length; i++)
+    {
+        if ((args[i] == "--output" || args[i] == "-o") && i + 1 < args.Length)
+        {
+            outputPath = args[++i];
+        }
+    }
+
+    var ticket = await client.GetTicketAsync(ticketId);
+    if (ticket == null)
+    {
+        Console.WriteLine($"Ticket {ticketId} not found.");
+        return 1;
+    }
+
+    var attachment = ticket.Attachments?.FirstOrDefault(a => a.Id == attachmentId);
+    if (attachment == null)
+    {
+        Console.WriteLine($"Attachment {attachmentId} not found in ticket {ticketId}");
+        return 1;
+    }
+
+    outputPath ??= attachment.Name;
+
+    Console.WriteLine($"Downloading {attachment.Name} ({attachment.FormattedSize})...");
+
+    try
+    {
+        var data = await client.DownloadAttachmentAsync(attachment.AttachmentUrl);
+        await File.WriteAllBytesAsync(outputPath, data);
+        Console.WriteLine($"✓ Downloaded to: {outputPath}");
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Failed to download attachment: {ex.Message}");
+        return 1;
+    }
+}
+
+static async Task<int> HandleAttachmentUpload(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (args.Length < 2 || !long.TryParse(args[0], out var ticketId))
+    {
+        Console.WriteLine("Usage: freshdesk attachment upload <ticket-id> <file-path> [--name <filename>]");
+        return 1;
+    }
+
+    var filePath = args[1];
+    if (!File.Exists(filePath))
+    {
+        Console.WriteLine($"File not found: {filePath}");
+        return 1;
+    }
+
+    string? fileName = null;
+    for (int i = 2; i < args.Length; i++)
+    {
+        if ((args[i] == "--name" || args[i] == "-n") && i + 1 < args.Length)
+        {
+            fileName = args[++i];
+        }
+    }
+
+    var fileInfo = new FileInfo(filePath);
+    Console.WriteLine($"Uploading {fileInfo.Name} ({fileInfo.Length / 1024.0:F1} KB) to ticket #{ticketId}...");
+
+    try
+    {
+        var updatedTicket = await client.UploadAttachmentAsync(ticketId, filePath, fileName);
+        Console.WriteLine($"✓ Uploaded successfully!");
+        Console.WriteLine($"  Ticket #{updatedTicket.Id} updated with attachment");
+        if (updatedTicket.Attachments?.Length > 0)
+        {
+            var latest = updatedTicket.Attachments[^1];
+            Console.WriteLine($"  Attachment: {latest.Name} ({latest.FormattedSize})");
+        }
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Failed to upload attachment: {ex.Message}");
+        return 1;
     }
 }
