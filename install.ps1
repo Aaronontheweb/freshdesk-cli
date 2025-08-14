@@ -10,10 +10,34 @@
 
 param(
     [string]$InstallDir = "",
-    [switch]$Force
+    [switch]$Force,
+    [switch]$DryRun,
+    [switch]$Beta,
+    [switch]$Help
 )
 
 $ErrorActionPreference = "Stop"
+
+# Show help if requested
+if ($Help) {
+    Write-Host "Freshdesk CLI Installer for Windows"
+    Write-Host ""
+    Write-Host "Usage: .\install.ps1 [OPTIONS]"
+    Write-Host ""
+    Write-Host "Options:"
+    Write-Host "  -InstallDir <path>  Custom installation directory"
+    Write-Host "  -Force              Skip confirmation prompts"
+    Write-Host "  -DryRun             Download and verify but don't install"
+    Write-Host "  -Beta               Include beta/pre-release versions"
+    Write-Host "  -Help               Show this help message"
+    Write-Host ""
+    Write-Host "Examples:"
+    Write-Host "  .\install.ps1"
+    Write-Host "  .\install.ps1 -DryRun"
+    Write-Host "  .\install.ps1 -Beta -Force"
+    Write-Host "  .\install.ps1 -InstallDir 'C:\tools\freshdesk'"
+    exit 0
+}
 
 # Configuration
 $RepoOwner = "Aaronontheweb"
@@ -36,18 +60,36 @@ function Get-Platform {
 }
 
 function Get-LatestVersion {
-    Write-Info "Fetching latest release information..."
+    param([bool]$IncludeBeta = $false)
+    
+    if ($IncludeBeta) {
+        Write-Info "Fetching latest release information (including pre-releases)..."
+        $apiUrl = "https://api.github.com/repos/$RepoOwner/$RepoName/releases"
+    } else {
+        Write-Info "Fetching latest stable release information..."
+        $apiUrl = "https://api.github.com/repos/$RepoOwner/$RepoName/releases/latest"
+    }
     
     try {
         $headers = @{
             "User-Agent" = "freshdesk-cli-installer"
         }
         
-        $release = Invoke-RestMethod `
-            -Uri "https://api.github.com/repos/$RepoOwner/$RepoName/releases/latest" `
-            -Headers $headers
+        $releases = Invoke-RestMethod -Uri $apiUrl -Headers $headers
         
-        return $release.tag_name
+        if ($IncludeBeta -and $releases -is [array]) {
+            # Get the first release (most recent)
+            return $releases[0].tag_name
+        } else {
+            # For stable releases or single release response
+            if ($releases -is [array]) {
+                # Find first non-prerelease
+                $stable = $releases | Where-Object { -not $_.prerelease } | Select-Object -First 1
+                return $stable.tag_name
+            } else {
+                return $releases.tag_name
+            }
+        }
     }
     catch {
         Write-Error "Failed to fetch release information: $_"
@@ -57,7 +99,8 @@ function Get-LatestVersion {
 function Install-Binary {
     param(
         [string]$Version,
-        [string]$Platform
+        [string]$Platform,
+        [bool]$DryRun = $false
     )
     
     # Support versioned artifact names (e.g., freshdesk-1.0.0-win-x64.zip)
@@ -99,6 +142,30 @@ function Install-Binary {
     
     if (-not $binaryPath) {
         Write-Error "Binary not found in archive"
+    }
+    
+    # Check if this is a dry run
+    if ($DryRun) {
+        Write-Info "DRY-RUN: Would install binary to $InstallDir\$BinaryName"
+        Write-Info "DRY-RUN: Binary found at: $($binaryPath.FullName)"
+        
+        # Test the binary
+        try {
+            $testOutput = & $binaryPath.FullName --version 2>$null
+            if ($testOutput) {
+                Write-Info "DRY-RUN: Binary test successful: $testOutput"
+            } else {
+                Write-Warn "DRY-RUN: Binary test - no version output received"
+            }
+        }
+        catch {
+            Write-Warn "DRY-RUN: Binary test failed - may not be compatible with this system"
+        }
+        
+        # Cleanup
+        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+        Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+        return
     }
     
     # Create install directory if it doesn't exist
@@ -149,12 +216,17 @@ function Main {
     Write-Host "===================================" -ForegroundColor Cyan
     Write-Host ""
     
+    if ($DryRun) {
+        Write-Warn "Running in DRY-RUN mode - will download but not install"
+        Write-Host ""
+    }
+    
     # Detect platform
     $platform = Get-Platform
     Write-Info "Detected platform: $platform"
     
     # Get latest version
-    $version = Get-LatestVersion
+    $version = Get-LatestVersion -IncludeBeta:$Beta
     Write-Info "Latest version: $version"
     
     # Check if already installed
@@ -178,40 +250,46 @@ function Main {
     }
     
     # Install binary
-    Install-Binary -Version $version -Platform $platform
+    Install-Binary -Version $version -Platform $platform -DryRun:$DryRun
     
-    # Verify installation
-    try {
-        $testOutput = & "$InstallDir\$BinaryName" --version 2>$null
-        if ($testOutput) {
-            Write-Info "✓ Successfully installed freshdesk $version"
-        } else {
-            throw "Verification failed"
+    if ($DryRun) {
+        Write-Host ""
+        Write-Info "DRY-RUN complete! No changes were made to your system."
+        Write-Info "To actually install, run without -DryRun flag"
+    } else {
+        # Verify installation
+        try {
+            $testOutput = & "$InstallDir\$BinaryName" --version 2>$null
+            if ($testOutput) {
+                Write-Info "✓ Successfully installed freshdesk $version"
+            } else {
+                throw "Verification failed"
+            }
         }
-    }
-    catch {
-        Write-Error "Installation verification failed: $_"
-    }
-    
-    # Add to PATH
-    Add-ToPath
-    
-    Write-Host ""
-    Write-Host "Installation complete! 🎉" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "Run 'freshdesk --help' to get started" -ForegroundColor Cyan
-    Write-Host "Run 'freshdesk update' to check for updates" -ForegroundColor Cyan
-    
-    # Create desktop shortcut option
-    $createShortcut = Read-Host "`nCreate desktop shortcut? [y/N]"
-    if ($createShortcut -eq 'y' -or $createShortcut -eq 'Y') {
-        $WshShell = New-Object -comObject WScript.Shell
-        $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Freshdesk CLI.lnk")
-        $Shortcut.TargetPath = "$InstallDir\$BinaryName"
-        $Shortcut.WorkingDirectory = $InstallDir
-        $Shortcut.IconLocation = "$InstallDir\$BinaryName"
-        $Shortcut.Save()
-        Write-Info "Desktop shortcut created"
+        catch {
+            Write-Error "Installation verification failed: $_"
+        }
+        
+        # Add to PATH
+        Add-ToPath
+        
+        Write-Host ""
+        Write-Host "Installation complete! 🎉" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Run 'freshdesk --help' to get started" -ForegroundColor Cyan
+        Write-Host "Run 'freshdesk update' to check for updates" -ForegroundColor Cyan
+        
+        # Create desktop shortcut option
+        $createShortcut = Read-Host "`nCreate desktop shortcut? [y/N]"
+        if ($createShortcut -eq 'y' -or $createShortcut -eq 'Y') {
+            $WshShell = New-Object -comObject WScript.Shell
+            $Shortcut = $WshShell.CreateShortcut("$env:USERPROFILE\Desktop\Freshdesk CLI.lnk")
+            $Shortcut.TargetPath = "$InstallDir\$BinaryName"
+            $Shortcut.WorkingDirectory = $InstallDir
+            $Shortcut.IconLocation = "$InstallDir\$BinaryName"
+            $Shortcut.Save()
+            Write-Info "Desktop shortcut created"
+        }
     }
 }
 

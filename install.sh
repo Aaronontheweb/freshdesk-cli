@@ -8,6 +8,7 @@
 #
 # Or download and run:
 #   ./install.sh
+#   ./install.sh --dry-run
 #   INSTALL_DIR=/custom/path ./install.sh
 #
 
@@ -69,16 +70,30 @@ check_requirements() {
 
 # Get latest release version from GitHub
 get_latest_version() {
-    local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
+    local include_prerelease="${1:-false}"
+    local api_url
     
-    info "Fetching latest release information..."
+    if [ "$include_prerelease" = true ]; then
+        # Get all releases and find the latest (including pre-releases)
+        api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases"
+        info "Fetching latest release information (including pre-releases)..."
+    else
+        # Get only the latest stable release
+        api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
+        info "Fetching latest stable release information..."
+    fi
     
     local response
     response=$(curl -s "$api_url") || error "Failed to fetch release information"
     
     # Extract version from tag_name
     local version
-    version=$(echo "$response" | grep '"tag_name"' | head -1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+    if [ "$include_prerelease" = true ]; then
+        # Get the first release from the array (most recent)
+        version=$(echo "$response" | grep '"tag_name"' | head -1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+    else
+        version=$(echo "$response" | grep '"tag_name"' | head -1 | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+    fi
     
     if [ -z "$version" ]; then
         error "Could not determine latest version"
@@ -123,6 +138,24 @@ install_binary() {
         error "Binary not found in archive"
     fi
     
+    # Check if this is a dry run
+    if [ "$3" = true ]; then
+        info "DRY-RUN: Would install binary to ${INSTALL_DIR}/${BINARY_NAME}"
+        info "DRY-RUN: Binary found at: $binary_path"
+        
+        # Test the binary
+        if "$binary_path" --version >/dev/null 2>&1; then
+            local test_version=$("$binary_path" --version 2>/dev/null | head -1)
+            info "DRY-RUN: Binary test successful: $test_version"
+        else
+            warn "DRY-RUN: Binary test failed - may not be compatible with this system"
+        fi
+        
+        # Cleanup
+        rm -rf "$temp_dir"
+        return 0
+    fi
+    
     # Create install directory if it doesn't exist
     mkdir -p "$INSTALL_DIR"
     
@@ -158,10 +191,41 @@ check_path() {
 
 # Main installation flow
 main() {
+    # Parse command line arguments
+    local dry_run=false
+    local include_beta=false
+    for arg in "$@"; do
+        case $arg in
+            --dry-run|--dry|-n)
+                dry_run=true
+                ;;
+            --beta|--pre|--prerelease)
+                include_beta=true
+                ;;
+            --help|-h)
+                echo "Usage: $0 [OPTIONS]"
+                echo ""
+                echo "Options:"
+                echo "  --dry-run, -n       Download and verify but don't install"
+                echo "  --beta, --pre       Include beta/pre-release versions"
+                echo "  --help, -h          Show this help message"
+                echo ""
+                echo "Environment variables:"
+                echo "  INSTALL_DIR         Set custom installation directory (default: ~/.local/bin)"
+                exit 0
+                ;;
+        esac
+    done
+    
     echo "==================================="
     echo "  Freshdesk CLI Installer"
     echo "==================================="
     echo ""
+    
+    if [ "$dry_run" = true ]; then
+        warn "Running in DRY-RUN mode - will download but not install"
+        echo ""
+    fi
     
     # Check requirements
     check_requirements
@@ -173,8 +237,12 @@ main() {
     
     # Get latest version
     local version
-    version=$(get_latest_version)
+    version=$(get_latest_version "$include_beta")
     info "Latest version: ${version}"
+    
+    if [ "$include_beta" = true ] && [[ "$version" =~ (beta|rc|alpha|preview) ]]; then
+        warn "Installing pre-release version: ${version}"
+    fi
     
     # Check if already installed
     if [ -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
@@ -191,23 +259,29 @@ main() {
     fi
     
     # Install binary
-    install_binary "$version" "$platform"
+    install_binary "$version" "$platform" "$dry_run"
     
-    # Verify installation
-    if "${INSTALL_DIR}/${BINARY_NAME}" --version >/dev/null 2>&1; then
-        info "✓ Successfully installed ${BINARY_NAME} ${version}"
+    if [ "$dry_run" = true ]; then
+        echo ""
+        info "DRY-RUN complete! No changes were made to your system."
+        info "To actually install, run without --dry-run flag"
     else
-        error "Installation verification failed"
+        # Verify installation
+        if "${INSTALL_DIR}/${BINARY_NAME}" --version >/dev/null 2>&1; then
+            info "✓ Successfully installed ${BINARY_NAME} ${version}"
+        else
+            error "Installation verification failed"
+        fi
+        
+        # Check PATH
+        check_path
+        
+        echo ""
+        echo "Installation complete! 🎉"
+        echo ""
+        echo "Run '${BINARY_NAME} --help' to get started"
+        echo "Run '${BINARY_NAME} update' to check for updates"
     fi
-    
-    # Check PATH
-    check_path
-    
-    echo ""
-    echo "Installation complete! 🎉"
-    echo ""
-    echo "Run '${BINARY_NAME} --help' to get started"
-    echo "Run '${BINARY_NAME} update' to check for updates"
 }
 
 # Run main function
