@@ -89,6 +89,9 @@ static void ShowHelp()
     Console.WriteLine("  attachment list    List attachments for a ticket");
     Console.WriteLine("  attachment download Download an attachment");
     Console.WriteLine("  attachment upload  Upload an attachment to a ticket");
+    Console.WriteLine("  export tickets    Export tickets to file");
+    Console.WriteLine("  export ticket     Export single ticket");
+    Console.WriteLine("  update            Check for and install updates");
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine("  --version, -v      Show version information");
