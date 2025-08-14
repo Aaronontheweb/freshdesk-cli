@@ -1,6 +1,14 @@
+using System.Text.Json.Serialization;
+
 namespace FreshdeskCLI.Models;
 
 public sealed class ConfigFile
+{
+    public string? DefaultProfile { get; set; }
+    public Dictionary<string, FreshdeskConfig> Profiles { get; set; } = new();
+}
+
+public sealed class FreshdeskConfig
 {
     public string Domain { get; set; } = string.Empty;
     public string ApiKey { get; set; } = string.Empty;
@@ -9,18 +17,26 @@ public sealed class ConfigFile
     public bool? AutoRetry { get; set; }
     public int? RetryCount { get; set; }
     public string? OutputFormat { get; set; }
+    public string? ProfileName { get; set; }
 
-    public bool IsValid()
+    [JsonIgnore]
+    public bool IsValid => !string.IsNullOrWhiteSpace(Domain) &&
+                           !string.IsNullOrWhiteSpace(ApiKey) &&
+                           ApiKey.Length > 10;
+
+    [JsonIgnore]
+    public string BaseUrl
     {
-        return !string.IsNullOrWhiteSpace(Domain) &&
-               !string.IsNullOrWhiteSpace(ApiKey) &&
-               Domain.Contains('.') &&
-               ApiKey.Length > 10;
+        get
+        {
+            if (Domain.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                return Domain.TrimEnd('/');
+            if (Domain.Contains('.', StringComparison.Ordinal))
+                return $"https://{Domain}";
+            return $"https://{Domain}.freshdesk.com";
+        }
     }
 
-    public string GetBaseUrl()
-    {
-        var domain = Domain.StartsWith("https://") ? Domain : $"https://{Domain}";
-        return domain.TrimEnd('/');
-    }
+    [JsonIgnore]
+    public string ApiV2Url => $"{BaseUrl}/api/v2";
 }
