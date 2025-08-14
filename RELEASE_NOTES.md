@@ -1,3 +1,61 @@
+#### 1.0.0 August 14th 2025 ####
+
+**First Stable Release**
+
+The first stable release of the Freshdesk CLI tool - a powerful command-line interface for managing Freshdesk tickets and support operations.
+
+**New Features:**
+- **Uninstall Support** - Easy removal via `curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash -s -- --uninstall`
+- **Improved Installation** - One-command installation with proper error handling and version detection
+- **Stable Release Channel** - No more beta flags needed for installation
+
+**Features:**
+- **Configuration Management** - Set and test Freshdesk API credentials
+- **Ticket Operations** - List, view, create, update, and search tickets
+- **Conversation Support** - Reply to tickets and add internal notes
+- **Attachment Handling** - List, download (bulk support), and upload attachments
+- **Export Functionality** - Export tickets to JSON, CSV, XML, or Markdown formats
+- **Self-Update Mechanism** - Built-in update command to fetch latest releases
+- **Read-Only Mode** - Safe mode for viewing without making changes
+- **Cross-Platform** - Native binaries for Linux and macOS (x64 and ARM64)
+- **AOT Compilation** - Fast startup and minimal memory footprint using .NET 9 AOT
+
+**Installation:**
+```bash
+# Quick install
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+
+# Uninstall
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash -s -- --uninstall
+```
+
+**Technical Highlights:**
+- Built with .NET 9 and AOT (Ahead-of-Time) compilation
+- Reflection-free JSON serialization for optimal performance
+- Progress indicators for long-running operations
+- Comprehensive error handling and validation
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64 (manual download from releases page)
+
+**Getting Started:**
+```bash
+# Configure your Freshdesk credentials
+freshdesk config set --domain your-domain --api-key your-api-key
+
+# Test the connection
+freshdesk config test
+
+# List recent tickets
+freshdesk ticket list
+
+# Get help
+freshdesk --help
+```
+
 #### 1.0.0-beta1 August 14th 2025 ####
 
 **Initial Beta Release**

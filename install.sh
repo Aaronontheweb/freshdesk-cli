@@ -187,11 +187,66 @@ check_path() {
     fi
 }
 
+# Uninstall Freshdesk CLI
+uninstall_freshdesk() {
+    echo "==================================="
+    echo "  Freshdesk CLI Uninstaller"
+    echo "==================================="
+    echo ""
+    
+    local binary_path="${INSTALL_DIR}/${BINARY_NAME}"
+    local config_dir="${HOME}/.freshdesk"
+    local removed_something=false
+    
+    # Remove binary
+    if [ -f "$binary_path" ]; then
+        info "Removing binary from $binary_path"
+        rm "$binary_path" || error "Failed to remove binary"
+        info "Binary removed successfully"
+        removed_something=true
+    else
+        warn "Binary not found at $binary_path"
+    fi
+    
+    # Ask about config removal
+    if [ -d "$config_dir" ]; then
+        echo ""
+        echo -n "Remove configuration directory $config_dir? [y/N]: "
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            rm -rf "$config_dir" || error "Failed to remove configuration directory"
+            info "Configuration directory removed"
+            removed_something=true
+        else
+            info "Configuration directory preserved"
+        fi
+    fi
+    
+    echo ""
+    if [ "$removed_something" = true ]; then
+        info "Uninstall completed successfully"
+    else
+        warn "Nothing was removed - Freshdesk CLI may not have been installed"
+    fi
+    
+    # Check if install directory is now empty and removable
+    if [ -d "$INSTALL_DIR" ] && [ -z "$(ls -A "$INSTALL_DIR" 2>/dev/null)" ]; then
+        echo ""
+        echo -n "Remove empty installation directory $INSTALL_DIR? [y/N]: "
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            rmdir "$INSTALL_DIR" 2>/dev/null && info "Installation directory removed" || warn "Could not remove installation directory"
+        fi
+    fi
+}
+
 # Main installation flow
 main() {
     # Parse command line arguments
     local dry_run=false
     local include_beta=false
+    local uninstall=false
+    
     for arg in "$@"; do
         case $arg in
             --dry-run|--dry|-n)
@@ -200,12 +255,16 @@ main() {
             --beta|--pre|--prerelease)
                 include_beta=true
                 ;;
+            --uninstall|--remove)
+                uninstall=true
+                ;;
             --help|-h)
                 echo "Usage: $0 [OPTIONS]"
                 echo ""
                 echo "Options:"
                 echo "  --dry-run, -n       Download and verify but don't install"
                 echo "  --beta, --pre       Include beta/pre-release versions"
+                echo "  --uninstall         Remove Freshdesk CLI and optionally config"
                 echo "  --help, -h          Show this help message"
                 echo ""
                 echo "Environment variables:"
@@ -214,6 +273,12 @@ main() {
                 ;;
         esac
     done
+    
+    # Handle uninstall
+    if [ "$uninstall" = true ]; then
+        uninstall_freshdesk
+        exit 0
+    fi
     
     echo "==================================="
     echo "  Freshdesk CLI Installer"
