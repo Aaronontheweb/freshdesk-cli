@@ -16,7 +16,7 @@ public class ExportServiceTests : IDisposable
     {
         _testOutputPath = Path.Combine(Path.GetTempPath(), $"export-test-{Guid.NewGuid()}");
         Directory.CreateDirectory(_testOutputPath);
-        
+
         _exportService = new ExportService();
         _mockServer = new MockFreshdeskServer();
         _httpClient = new HttpClient(_mockServer)
@@ -29,7 +29,7 @@ public class ExportServiceTests : IDisposable
     {
         if (Directory.Exists(_testOutputPath))
             Directory.Delete(_testOutputPath, true);
-        
+
         _httpClient?.Dispose();
     }
 
@@ -45,10 +45,10 @@ public class ExportServiceTests : IDisposable
 
         // Assert
         Assert.True(File.Exists(outputFile));
-        
+
         var json = await File.ReadAllTextAsync(outputFile);
         var deserialized = JsonSerializer.Deserialize<Ticket[]>(json, FreshdeskJsonIndentedContext.Default.Options);
-        
+
         Assert.NotNull(deserialized);
         Assert.Equal(3, deserialized.Length);
         Assert.Equal("Test Ticket 1", deserialized[0].Subject);
@@ -66,16 +66,16 @@ public class ExportServiceTests : IDisposable
 
         // Assert
         Assert.True(File.Exists(outputFile));
-        
+
         var lines = await File.ReadAllLinesAsync(outputFile);
         Assert.NotEmpty(lines);
-        
+
         // Check header
         Assert.Contains("ID,Subject,Status,Priority", lines[0]);
-        
+
         // Check data rows (3 tickets + 1 header)
         Assert.Equal(4, lines.Length);
-        
+
         // Check first data row
         Assert.Contains("Test Ticket 1", lines[1]);
         Assert.Contains("Open", lines[1]);
@@ -93,16 +93,16 @@ public class ExportServiceTests : IDisposable
 
         // Assert
         Assert.True(File.Exists(outputFile));
-        
+
         var xml = await File.ReadAllTextAsync(outputFile);
         var doc = XDocument.Parse(xml);
-        
+
         Assert.NotNull(doc.Root);
         Assert.Equal("tickets", doc.Root.Name.LocalName);
-        
+
         var ticketElements = doc.Root.Elements("ticket").ToList();
         Assert.Equal(3, ticketElements.Count);
-        
+
         var firstTicket = ticketElements[0];
         Assert.Equal("1", firstTicket.Element("id")?.Value);
         Assert.Equal("Test Ticket 1", firstTicket.Element("subject")?.Value);
@@ -128,7 +128,7 @@ public class ExportServiceTests : IDisposable
                 new Attachment { Name = "screenshot.png", Size = 1024 * 500 }
             }
         };
-        
+
         var conversations = new[]
         {
             new Conversation
@@ -150,7 +150,7 @@ public class ExportServiceTests : IDisposable
                 CreatedAt = new DateTimeOffset(2025, 1, 15, 10, 45, 0, TimeSpan.Zero)
             }
         };
-        
+
         var outputFile = Path.Combine(_testOutputPath, "ticket.md");
 
         // Act
@@ -158,20 +158,20 @@ public class ExportServiceTests : IDisposable
 
         // Assert
         Assert.True(File.Exists(outputFile));
-        
+
         var markdown = await File.ReadAllTextAsync(outputFile);
-        
+
         // Check structure
         Assert.Contains("# Ticket #123: Test Issue", markdown);
         Assert.Contains("## Details", markdown);
         Assert.Contains("- **Status**: Open", markdown);
         Assert.Contains("- **Priority**: High", markdown);
         Assert.Contains("- **Tags**: bug, urgent", markdown);
-        
+
         // Check attachments
         Assert.Contains("## Attachments", markdown);
         Assert.Contains("screenshot.png", markdown);
-        
+
         // Check conversations
         Assert.Contains("## Conversation History", markdown);
         Assert.Contains("Customer's initial message", markdown);
@@ -184,15 +184,15 @@ public class ExportServiceTests : IDisposable
         // Arrange
         var tickets = CreateTestTickets();
         var outputFile = Path.Combine(_testOutputPath, "tickets_with_conversations.json");
-        
+
         var config = new FreshdeskConfig
         {
             Domain = "test",
             ApiKey = "test-api-key-12345"
         };
-        
+
         var client = new FreshdeskApiClient(config, _httpClient);
-        
+
         // Setup mock conversations for each ticket
         foreach (var ticket in tickets)
         {
@@ -212,15 +212,15 @@ public class ExportServiceTests : IDisposable
 
         // Act
         await _exportService.ExportTicketsAsync(
-            tickets, 
-            outputFile, 
-            "json", 
-            includeConversations: true, 
+            tickets,
+            outputFile,
+            "json",
+            includeConversations: true,
             apiClient: client);
 
         // Assert
         Assert.True(File.Exists(outputFile));
-        
+
         var json = await File.ReadAllTextAsync(outputFile);
         Assert.Contains("conversations", json);
         Assert.Contains("Conversation for ticket 1", json);
@@ -244,7 +244,7 @@ public class ExportServiceTests : IDisposable
                 UpdatedAt = DateTimeOffset.Now
             }
         };
-        
+
         var outputFile = Path.Combine(_testOutputPath, "special_chars.csv");
 
         // Act
@@ -252,9 +252,9 @@ public class ExportServiceTests : IDisposable
 
         // Assert
         Assert.True(File.Exists(outputFile));
-        
+
         var lines = await File.ReadAllLinesAsync(outputFile);
-        
+
         // Check that special characters are properly escaped
         Assert.Contains("\"Subject with, comma\"", lines[1]);
         Assert.Contains("\"Description with \"\"quotes\"\" and", lines[1]);
@@ -277,7 +277,7 @@ public class ExportServiceTests : IDisposable
                 UpdatedAt = DateTimeOffset.Now
             }
         };
-        
+
         var outputFile = Path.Combine(_testOutputPath, "special_chars.xml");
 
         // Act
@@ -285,10 +285,10 @@ public class ExportServiceTests : IDisposable
 
         // Assert
         Assert.True(File.Exists(outputFile));
-        
+
         var xml = await File.ReadAllTextAsync(outputFile);
         var doc = XDocument.Parse(xml); // This will fail if XML is invalid
-        
+
         // Check that special characters are properly escaped
         Assert.Contains("&lt;tag&gt;", xml);
         Assert.Contains("&amp;", xml);

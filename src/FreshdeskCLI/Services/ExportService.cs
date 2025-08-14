@@ -8,13 +8,13 @@ namespace FreshdeskCLI.Services;
 public interface IExportService
 {
     Task ExportTicketsAsync(
-        Ticket[] tickets, 
-        string filePath, 
+        Ticket[] tickets,
+        string filePath,
         string format = "json",
         bool includeConversations = false,
         IFreshdeskApiClient? apiClient = null,
         CancellationToken cancellationToken = default);
-        
+
     Task ExportTicketAsync(
         Ticket ticket,
         Conversation[]? conversations,
@@ -107,7 +107,7 @@ public sealed class ExportService : IExportService
         if (includeConversations && apiClient != null)
         {
             var ticketsWithConversations = new List<TicketWithConversations>();
-            
+
             using var progress = ProgressIndicatorFactory.Create(
                 "Fetching ticket conversations",
                 enabled: !Console.IsOutputRedirected);
@@ -118,21 +118,21 @@ public sealed class ExportService : IExportService
             foreach (var ticket in tickets)
             {
                 progress.Report(completed, total, $"Fetching conversations for ticket #{ticket.Id}");
-                
+
                 var conversations = await apiClient.GetTicketConversationsAsync(ticket.Id, cancellationToken);
-                
+
                 ticketsWithConversations.Add(new TicketWithConversations
                 {
                     Ticket = ticket,
                     Conversations = conversations
                 });
-                
+
                 completed++;
                 progress.Report(completed, total);
             }
-            
+
             progress.Complete($"Fetched conversations for {total} tickets");
-            
+
             // Use the indented context for export
             json = JsonSerializer.Serialize(ticketsWithConversations, FreshdeskJsonIndentedContext.Default.ListTicketWithConversations);
         }
@@ -152,7 +152,7 @@ public sealed class ExportService : IExportService
         CancellationToken cancellationToken)
     {
         string json;
-        
+
         if (conversations != null)
         {
             var ticketWithConversations = new TicketWithConversations
@@ -176,7 +176,7 @@ public sealed class ExportService : IExportService
         CancellationToken cancellationToken)
     {
         var csv = new StringBuilder();
-        
+
         // Header
         csv.AppendLine("ID,Subject,Status,Priority,Source,Email,Created,Updated,Due By,Tags,Description");
 
@@ -219,12 +219,12 @@ public sealed class ExportService : IExportService
             xml.AppendLine($"    <email>{EscapeXml(ticket.Email ?? "")}</email>");
             xml.AppendLine($"    <created>{ticket.CreatedAt:yyyy-MM-dd HH:mm:ss}</created>");
             xml.AppendLine($"    <updated>{ticket.UpdatedAt:yyyy-MM-dd HH:mm:ss}</updated>");
-            
+
             if (ticket.DueBy.HasValue)
             {
                 xml.AppendLine($"    <due_by>{ticket.DueBy.Value:yyyy-MM-dd HH:mm:ss}</due_by>");
             }
-            
+
             if (ticket.Tags != null && ticket.Tags.Length > 0)
             {
                 xml.AppendLine("    <tags>");
@@ -234,9 +234,9 @@ public sealed class ExportService : IExportService
                 }
                 xml.AppendLine("    </tags>");
             }
-            
+
             xml.AppendLine($"    <description>{EscapeXml(ticket.Description ?? "")}</description>");
-            
+
             if (ticket.Attachments != null && ticket.Attachments.Length > 0)
             {
                 xml.AppendLine("    <attachments>");
@@ -250,7 +250,7 @@ public sealed class ExportService : IExportService
                 }
                 xml.AppendLine("    </attachments>");
             }
-            
+
             xml.AppendLine("  </ticket>");
         }
 
@@ -265,11 +265,11 @@ public sealed class ExportService : IExportService
         CancellationToken cancellationToken)
     {
         var md = new StringBuilder();
-        
+
         // Header
         md.AppendLine($"# Ticket #{ticket.Id}: {ticket.Subject}");
         md.AppendLine();
-        
+
         // Metadata
         md.AppendLine("## Details");
         md.AppendLine($"- **Status**: {ticket.Status}");
@@ -278,24 +278,24 @@ public sealed class ExportService : IExportService
         md.AppendLine($"- **Email**: {ticket.Email ?? "N/A"}");
         md.AppendLine($"- **Created**: {ticket.CreatedAt:yyyy-MM-dd HH:mm:ss}");
         md.AppendLine($"- **Updated**: {ticket.UpdatedAt:yyyy-MM-dd HH:mm:ss}");
-        
+
         if (ticket.DueBy.HasValue)
         {
             md.AppendLine($"- **Due By**: {ticket.DueBy.Value:yyyy-MM-dd HH:mm:ss}");
         }
-        
+
         if (ticket.Tags != null && ticket.Tags.Length > 0)
         {
             md.AppendLine($"- **Tags**: {string.Join(", ", ticket.Tags)}");
         }
-        
+
         md.AppendLine();
-        
+
         // Description
         md.AppendLine("## Description");
         md.AppendLine(ticket.Description ?? "*No description provided*");
         md.AppendLine();
-        
+
         // Attachments
         if (ticket.Attachments != null && ticket.Attachments.Length > 0)
         {
@@ -306,29 +306,29 @@ public sealed class ExportService : IExportService
             }
             md.AppendLine();
         }
-        
+
         // Conversations
         if (conversations != null && conversations.Length > 0)
         {
             md.AppendLine("## Conversation History");
             md.AppendLine();
-            
+
             foreach (var conversation in conversations.OrderBy(c => c.CreatedAt))
             {
-                var type = conversation.Private ? "Internal Note" : 
+                var type = conversation.Private ? "Internal Note" :
                           conversation.Incoming ? "Customer" : "Agent";
-                
+
                 md.AppendLine($"### {type} - {conversation.CreatedAt:yyyy-MM-dd HH:mm:ss}");
                 md.AppendLine();
-                
+
                 // Use plain text if available, otherwise strip HTML
-                var body = !string.IsNullOrEmpty(conversation.BodyText) 
-                    ? conversation.BodyText 
+                var body = !string.IsNullOrEmpty(conversation.BodyText)
+                    ? conversation.BodyText
                     : StripHtml(conversation.Body ?? "");
-                    
+
                 md.AppendLine(body);
                 md.AppendLine();
-                
+
                 if (conversation.Attachments != null && conversation.Attachments.Length > 0)
                 {
                     md.AppendLine("**Attachments:**");
@@ -338,7 +338,7 @@ public sealed class ExportService : IExportService
                     }
                     md.AppendLine();
                 }
-                
+
                 md.AppendLine("---");
                 md.AppendLine();
             }
