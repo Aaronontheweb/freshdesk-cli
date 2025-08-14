@@ -1,7 +1,7 @@
 # Freshdesk CLI Installer for Windows
 #
 # Usage:
-#   iwr -useb https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/main/install.ps1 | iex
+#   iwr -useb https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.ps1 | iex
 #
 # Or download and run:
 #   .\install.ps1
@@ -60,7 +60,9 @@ function Install-Binary {
         [string]$Platform
     )
     
-    $downloadUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/$Version/freshdesk-$Platform.zip"
+    # Support versioned artifact names (e.g., freshdesk-1.0.0-win-x64.zip)
+    $versionClean = $Version.TrimStart('v')
+    $downloadUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/$Version/freshdesk-$versionClean-$Platform.zip"
     $tempFile = "$env:TEMP\freshdesk-$Version.zip"
     $tempDir = "$env:TEMP\freshdesk-$Version"
     

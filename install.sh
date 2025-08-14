@@ -3,8 +3,8 @@
 # Freshdesk CLI Installer
 # 
 # Usage:
-#   curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/main/install.sh | bash
-#   wget -qO- https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/main/install.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+#   wget -qO- https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
 #
 # Or download and run:
 #   ./install.sh
@@ -92,7 +92,10 @@ install_binary() {
     local version="$1"
     local platform="$2"
     
-    local download_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/${BINARY_NAME}-${platform}.tar.gz"
+    # Support both versioned and non-versioned artifact names
+    # Try versioned name first (e.g., freshdesk-1.0.0-linux-x64.tar.gz)
+    local version_clean="${version#v}"  # Remove 'v' prefix if present
+    local download_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/${BINARY_NAME}-${version_clean}-${platform}.tar.gz"
     local temp_dir
     temp_dir=$(mktemp -d)
     local temp_file="${temp_dir}/${BINARY_NAME}.tar.gz"

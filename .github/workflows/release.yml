@@ -140,7 +140,26 @@ jobs:
           cat > release-notes.md << EOF
           # Freshdesk CLI v${{ env.VERSION }}
           
-          ## Installation
+          ## Quick Installation
+          
+          ### Linux/macOS
+          \`\`\`bash
+          curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+          \`\`\`
+          
+          ### Windows (PowerShell)
+          \`\`\`powershell
+          iwr -useb https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.ps1 | iex
+          \`\`\`
+          
+          ## Update Existing Installation
+          
+          If you already have freshdesk installed:
+          \`\`\`bash
+          freshdesk update
+          \`\`\`
+          
+          ## Manual Installation
           
           ### Linux/macOS
           \`\`\`bash

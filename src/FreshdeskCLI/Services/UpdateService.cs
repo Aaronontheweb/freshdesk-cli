@@ -316,9 +316,10 @@ rm -f '$0'
 
     private static GitHubAsset? FindPlatformAsset(GitHubAsset[] assets, string platform)
     {
-        // Look for exact platform match
+        // Look for asset with platform string (handles versioned names like freshdesk-1.0.0-linux-x64.tar.gz)
         return assets.FirstOrDefault(a => 
-            a.Name.Contains(platform, StringComparison.OrdinalIgnoreCase));
+            a.Name.Contains($"-{platform}.", StringComparison.OrdinalIgnoreCase) ||
+            a.Name.Contains($"_{platform}.", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsNewerVersion(string latest, string current)
