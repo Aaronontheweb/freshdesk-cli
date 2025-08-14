@@ -1,41 +1,42 @@
 <Project>
   <PropertyGroup>
-    <Copyright>Copyright © 2015-$([System.DateTime]::Now.Year) Aaron Stannard</Copyright>
-    <Authors>Aaronontheweb</Authors>
-    <Tags>akka, akka.streams, kafka, akkadotnet, akka streams, akka.streams.kafka</Tags>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Version configuration -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    
+    <!-- Get Git commit hash at build time -->
+    <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
+  </PropertyGroup>
+
+  <!-- Set informational version with git commit if available -->
+  <Target Name="SetInformationalVersion" BeforeTargets="GetAssemblyVersion">
+    <Exec Command="git rev-parse --short HEAD" ConsoleToMsBuild="true" IgnoreExitCode="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
+    </Exec>
+    <PropertyGroup>
+      <InformationalVersion Condition="'$(GitCommitHash)' != ''">$(Version)+$(GitCommitHash)</InformationalVersion>
+      <InformationalVersion Condition="'$(GitCommitHash)' == ''">$(Version)+$(SourceRevisionId)</InformationalVersion>
+    </PropertyGroup>
+  </Target>
+
+  <!-- Common properties for all projects -->
+  <PropertyGroup>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>1.0.0</VersionPrefix>
-    <PackageReleaseNotes>Example release notes</PackageReleaseNotes>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
-  <PropertyGroup>
-    <!-- Visual Studio C# settings -->
-    <TargetFramework>net9.0</TargetFramework>
-  </PropertyGroup>
-  <!-- GitHub SourceLink -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" PrivateAssets="All" />
-  </ItemGroup>
-  <!-- NuGet package properties -->
-    <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)\README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
-  <!-- NuGet .nupkg options -->
-  <PropertyGroup>
-    <PackageReleaseNotes>1.5.25 June 17 2024
 
-* [Updated Akka.NET to 1.5.25](https://github.com/akkadotnet/akka.net/releases/tag/1.5.25)</PackageReleaseNotes>
-    <PackageTags></PackageTags>
-    <PackageProjectUrl>https://github.com/Aaronontheweb/freshdesk-cli</PackageProjectUrl>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <!-- Optional: Embed source files that are not tracked by the source control manager in the PDB -->
-    <EmbedUntrackedSources>true</EmbedUntrackedSources>
-    <!-- Optional: Build symbol package (.snupkg) to distribute the PDB containing Source Link -->
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  <!-- AOT and trimming settings for the main project -->
+  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+    <TrimMode>full</TrimMode>
+    <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+    <StripSymbols>true</StripSymbols>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 </Project>

@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json;
 using FreshdeskCLI;
 using FreshdeskCLI.Models;
@@ -24,10 +25,15 @@ if (args.Length == 0)
     return 0;
 }
 
+// Get version information from assembly
+var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+var version = assembly.GetName().Version?.ToString() ?? "1.0.0";
+var informationalVersion = assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? version;
+
 // Handle special flags
 if (args[0] == "--version" || args[0] == "-v" || args[0] == "--about")
 {
-    Console.WriteLine("Freshdesk CLI v1.0.0");
+    Console.WriteLine($"Freshdesk CLI v{informationalVersion}");
     Console.WriteLine("Built with .NET 9 AOT compilation");
     Console.WriteLine();
     Console.WriteLine("Created with ❤️ by Aaron Stannard");
@@ -105,6 +111,7 @@ static async Task<int> RouteCommand(string[] args, bool isReadOnly = false)
         "ticket" => await HandleTicketCommand(args[1..], isReadOnly),
         "attachment" => await HandleAttachmentCommand(args[1..], isReadOnly),
         "export" => await HandleExportCommand(args[1..]),
+        "update" => await HandleUpdateCommand(args[1..]),
         _ => ShowUnknownCommand(args[0])
     };
 }
@@ -1177,6 +1184,98 @@ static async Task<int> HandleAttachmentUpload(string[] args, FreshdeskCLI.Servic
     catch (Exception ex)
     {
         Console.Error.WriteLine($"Failed to upload attachment: {ex.Message}");
+        return 1;
+    }
+}
+
+static async Task<int> HandleUpdateCommand(string[] args)
+{
+    // Get version information from assembly
+    var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+    var currentVersion = assembly.GetName().Version?.ToString(3) ?? "1.0.0"; // Major.Minor.Patch
+    
+    // Parse flags
+    bool checkOnly = false;
+    bool force = false;
+    
+    foreach (var arg in args)
+    {
+        if (arg == "--check" || arg == "-c")
+            checkOnly = true;
+        if (arg == "--force" || arg == "-f")
+            force = true;
+    }
+
+    try
+    {
+        using var httpClient = new HttpClient();
+        var updateService = new UpdateService(httpClient, currentVersion);
+        
+        Console.WriteLine("Checking for updates...");
+        var update = await updateService.CheckForUpdateAsync();
+        
+        if (update == null)
+        {
+            Console.WriteLine($"✓ You're running the latest version (v{currentVersion})");
+            return 0;
+        }
+        
+        Console.WriteLine($"📦 New version available: v{update.Version}");
+        Console.WriteLine($"   Current version: v{currentVersion}");
+        
+        if (!string.IsNullOrEmpty(update.ReleaseNotes))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Release notes:");
+            Console.WriteLine("─────────────");
+            
+            // Truncate long release notes
+            var notes = update.ReleaseNotes;
+            if (notes.Length > 500)
+            {
+                notes = notes.Substring(0, 497) + "...";
+            }
+            Console.WriteLine(notes);
+        }
+        
+        if (checkOnly)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Run 'freshdesk update' to install the latest version");
+            return 0;
+        }
+        
+        if (!force)
+        {
+            Console.WriteLine();
+            Console.Write("Do you want to update now? [y/N]: ");
+            var response = Console.ReadLine();
+            if (response?.ToLowerInvariant() != "y" && response?.ToLowerInvariant() != "yes")
+            {
+                Console.WriteLine("Update cancelled");
+                return 0;
+            }
+        }
+        
+        Console.WriteLine();
+        var success = await updateService.PerformUpdateAsync(update);
+        
+        if (success)
+        {
+            // This line won't be reached as the process exits during update
+            Console.WriteLine("✓ Update completed successfully!");
+            return 0;
+        }
+        else
+        {
+            Console.Error.WriteLine("Update failed. Please try again or download manually from:");
+            Console.Error.WriteLine($"  https://github.com/Aaronontheweb/freshdesk-cli/releases/latest");
+            return 1;
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Update failed: {ex.Message}");
         return 1;
     }
 }
