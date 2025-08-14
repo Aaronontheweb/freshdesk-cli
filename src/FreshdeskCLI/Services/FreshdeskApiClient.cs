@@ -14,7 +14,7 @@ public interface IFreshdeskApiClient
     Task<Ticket> UpdateTicketAsync(long ticketId, Ticket ticket, CancellationToken cancellationToken = default);
     Task<Conversation[]> GetTicketConversationsAsync(long ticketId, CancellationToken cancellationToken = default);
     Task<Conversation> ReplyToTicketAsync(long ticketId, string body, bool isPrivate = false, CancellationToken cancellationToken = default);
-    Task<Stream> DownloadAttachmentAsync(string attachmentUrl, CancellationToken cancellationToken = default);
+    Task<byte[]> DownloadAttachmentAsync(string attachmentUrl, CancellationToken cancellationToken = default);
     Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default);
 }
 
@@ -147,7 +147,7 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
         return JsonSerializer.Deserialize(responseJson, FreshdeskJsonContext.Default.Conversation)!;
     }
 
-    public async Task<Stream> DownloadAttachmentAsync(string attachmentUrl, CancellationToken cancellationToken = default)
+    public async Task<byte[]> DownloadAttachmentAsync(string attachmentUrl, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(attachmentUrl);
 
@@ -155,7 +155,7 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
         var response = await _httpClient.GetAsync(attachmentUrl, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        return await response.Content.ReadAsStreamAsync(cancellationToken);
+        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
     }
 
     public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)

@@ -2,6 +2,7 @@ using System.Text.Json;
 using FreshdeskCLI;
 using FreshdeskCLI.Models;
 using FreshdeskCLI.Helpers;
+using FreshdeskCLI.Services;
 
 // For now, use a simpler approach without System.CommandLine's complex features
 // System.CommandLine is AOT-compatible but the beta API is still evolving
@@ -840,9 +841,15 @@ static async Task<int> HandleAttachmentList(string[] args, FreshdeskCLI.Services
 
 static async Task<int> HandleAttachmentDownload(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    // Check if user wants to download all attachments
+    if (args.Length >= 2 && args[1].Equals("all", StringComparison.OrdinalIgnoreCase))
+    {
+        return await HandleBulkAttachmentDownload(args, client);
+    }
+
     if (args.Length < 2 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk attachment download <ticket-id> <attachment-id> [--output <path>]");
+        Console.WriteLine("Usage: freshdesk attachment download <ticket-id> <attachment-id|all> [--output <path>]");
         return 1;
     }
 
@@ -891,6 +898,73 @@ static async Task<int> HandleAttachmentDownload(string[] args, FreshdeskCLI.Serv
         Console.Error.WriteLine($"Failed to download attachment: {ex.Message}");
         return 1;
     }
+}
+
+static async Task<int> HandleBulkAttachmentDownload(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
+    {
+        Console.WriteLine("Usage: freshdesk attachment download <ticket-id> all [--output <path>]");
+        return 1;
+    }
+
+    var ticket = await client.GetTicketAsync(ticketId);
+    if (ticket == null)
+    {
+        Console.WriteLine($"Ticket {ticketId} not found.");
+        return 1;
+    }
+
+    if (ticket.Attachments == null || ticket.Attachments.Length == 0)
+    {
+        Console.WriteLine($"No attachments found for ticket #{ticketId}");
+        return 0;
+    }
+
+    // Parse output path
+    var outputPath = Environment.CurrentDirectory;
+    var outputIndex = Array.IndexOf(args, "--output");
+    if (outputIndex >= 0 && outputIndex < args.Length - 1)
+    {
+        outputPath = args[outputIndex + 1];
+    }
+
+    // Create folder for ticket attachments
+    var ticketFolder = Path.Combine(outputPath, $"ticket_{ticketId}_attachments");
+    Directory.CreateDirectory(ticketFolder);
+
+    var bulkService = new BulkOperationService(client);
+    var result = await bulkService.DownloadAttachmentsAsync(ticket, ticketFolder, showProgress: true);
+
+    Console.WriteLine($"\nDownload Summary:");
+    Console.WriteLine($"  Successfully downloaded: {result.SuccessCount}/{result.TotalFiles} files");
+    Console.WriteLine($"  Total size: {FormatFileSize(result.TotalBytes)}");
+    Console.WriteLine($"  Location: {ticketFolder}");
+
+    if (result.ErrorCount > 0)
+    {
+        Console.WriteLine($"\nErrors occurred for {result.ErrorCount} files:");
+        foreach (var error in result.Errors)
+        {
+            Console.WriteLine($"  - {error.Error}");
+        }
+        return 1;
+    }
+
+    return 0;
+}
+
+static string FormatFileSize(long bytes)
+{
+    string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+    double len = bytes;
+    int order = 0;
+    while (len >= 1024 && order < sizes.Length - 1)
+    {
+        order++;
+        len = len / 1024;
+    }
+    return $"{len:0.##} {sizes[order]}";
 }
 
 static async Task<int> HandleAttachmentUpload(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
