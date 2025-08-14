@@ -5,6 +5,7 @@ namespace FreshdeskCLI.Models;
 [JsonConverter(typeof(JsonNumberEnumConverter<TicketStatus>))]
 public enum TicketStatus
 {
+    None = 0,  // Default value for uninitialized state
     Open = 2,
     Pending = 3,
     Resolved = 4,
@@ -16,6 +17,7 @@ public enum TicketStatus
 [JsonConverter(typeof(JsonNumberEnumConverter<TicketPriority>))]
 public enum TicketPriority
 {
+    None = 0,  // Default value for uninitialized state
     Low = 1,
     Medium = 2,
     High = 3,

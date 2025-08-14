@@ -1,16 +1,19 @@
 root = false
 
 [*.cs]
-# Suppress overly strict analyzer rules for initial implementation
-dotnet_diagnostic.CA1303.severity = none # Globalization - literal strings
-dotnet_diagnostic.CA1515.severity = none # Public types in console app
-dotnet_diagnostic.CA1819.severity = none # Properties return arrays (needed for JSON)
-dotnet_diagnostic.CA1008.severity = none # Enum should have zero value
-dotnet_diagnostic.CA1027.severity = none # Mark enums with FlagsAttribute
-dotnet_diagnostic.CA1062.severity = none # Validate arguments (JSON converters)
-dotnet_diagnostic.CA1305.severity = none # Culture-specific string operations
-dotnet_diagnostic.CA1307.severity = none # StringComparison parameter
-dotnet_diagnostic.CA1310.severity = none # StringComparison for StartsWith
-dotnet_diagnostic.CA1055.severity = none # Uri return type
-dotnet_diagnostic.CA1056.severity = none # Uri properties
-dotnet_diagnostic.CA1852.severity = none # Seal internal types
+# Analyzer configuration for Freshdesk CLI
+
+# Suppress rules that don't apply well to our use case
+dotnet_diagnostic.CA1303.severity = none # Globalization - we're not localizing strings yet
+dotnet_diagnostic.CA1515.severity = none # Public types in console app are fine
+dotnet_diagnostic.CA1819.severity = none # Arrays in DTOs are needed for JSON serialization
+dotnet_diagnostic.CA1062.severity = none # JSON converter parameters are guaranteed non-null by framework
+dotnet_diagnostic.CA1055.severity = none # String URLs are fine for JSON DTOs
+dotnet_diagnostic.CA1056.severity = none # String URLs are fine for JSON DTOs
+
+# Keep these warnings - they're actually useful
+# CA1008 - Enums should have zero value (FIXED)
+# CA1305 - Specify IFormatProvider (should fix for culture issues)
+# CA1307 - Specify StringComparison (should fix for perf/correctness)
+# CA1310 - Specify StringComparison for correctness (should fix)
+# CA1852 - Seal internal types (good for perf)
