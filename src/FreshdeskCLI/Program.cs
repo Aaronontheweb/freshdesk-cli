@@ -104,6 +104,7 @@ static async Task<int> RouteCommand(string[] args, bool isReadOnly = false)
         "config" => await HandleConfigCommand(args[1..], isReadOnly),
         "ticket" => await HandleTicketCommand(args[1..], isReadOnly),
         "attachment" => await HandleAttachmentCommand(args[1..], isReadOnly),
+        "export" => await HandleExportCommand(args[1..]),
         _ => ShowUnknownCommand(args[0])
     };
 }
@@ -965,6 +966,173 @@ static string FormatFileSize(long bytes)
         len = len / 1024;
     }
     return $"{len:0.##} {sizes[order]}";
+}
+
+static async Task<int> HandleExportCommand(string[] args)
+{
+    if (args.Length < 1)
+    {
+        Console.WriteLine("Usage: freshdesk export <tickets|ticket> [options]");
+        Console.WriteLine();
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  tickets       Export multiple tickets to a file");
+        Console.WriteLine("  ticket        Export a single ticket with full details");
+        return 1;
+    }
+
+    var configService = new FreshdeskCLI.Services.ConfigurationService();
+    var config = await configService.LoadConfigAsync();
+    if (config == null || !config.IsValid)
+    {
+        Console.WriteLine("No valid configuration found. Run 'freshdesk config set' first.");
+        return 1;
+    }
+
+    using var client = new FreshdeskCLI.Services.FreshdeskApiClient(config);
+
+    return args[0].ToLowerInvariant() switch
+    {
+        "tickets" => await HandleExportTickets(args[1..], client),
+        "ticket" => await HandleExportTicket(args[1..], client),
+        _ => ShowUnknownCommand($"export {args[0]}")
+    };
+}
+
+static async Task<int> HandleExportTickets(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    string outputPath = "tickets_export.json";
+    string format = "json";
+    bool includeConversations = false;
+    string? status = null;
+    string? priority = null;
+    int? limit = null;
+
+    for (int i = 0; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--output" when i + 1 < args.Length:
+            case "-o" when i + 1 < args.Length:
+                outputPath = args[++i];
+                break;
+            case "--format" when i + 1 < args.Length:
+            case "-f" when i + 1 < args.Length:
+                format = args[++i];
+                break;
+            case "--include-conversations":
+                includeConversations = true;
+                break;
+            case "--status" when i + 1 < args.Length:
+                status = args[++i];
+                break;
+            case "--priority" when i + 1 < args.Length:
+                priority = args[++i];
+                break;
+            case "--limit" when i + 1 < args.Length:
+                limit = int.Parse(args[++i]);
+                break;
+        }
+    }
+
+    try
+    {
+        Console.WriteLine("Fetching tickets...");
+        var tickets = await client.GetTicketsAsync();
+
+        // Apply filters
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (Enum.TryParse<TicketStatus>(status, true, out var statusEnum))
+                tickets = tickets.Where(t => t.Status == statusEnum).ToArray();
+        }
+
+        if (!string.IsNullOrEmpty(priority))
+        {
+            if (Enum.TryParse<TicketPriority>(priority, true, out var priorityEnum))
+                tickets = tickets.Where(t => t.Priority == priorityEnum).ToArray();
+        }
+
+        if (limit.HasValue && limit.Value > 0)
+        {
+            tickets = tickets.Take(limit.Value).ToArray();
+        }
+
+        var exportService = new ExportService();
+        await exportService.ExportTicketsAsync(tickets, outputPath, format, includeConversations, client);
+
+        Console.WriteLine($"✓ Exported {tickets.Length} tickets to {outputPath}");
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Export failed: {ex.Message}");
+        return 1;
+    }
+}
+
+static async Task<int> HandleExportTicket(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
+    {
+        Console.WriteLine("Usage: freshdesk export ticket <ticket-id> [options]");
+        Console.WriteLine();
+        Console.WriteLine("Options:");
+        Console.WriteLine("  --output, -o <path>       Output file path");
+        Console.WriteLine("  --format, -f <format>     Export format (json, csv, xml, markdown)");
+        Console.WriteLine("  --include-conversations   Include conversation history");
+        return 1;
+    }
+
+    string outputPath = $"ticket_{ticketId}_export.json";
+    string format = "json";
+    bool includeConversations = false;
+
+    for (int i = 1; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--output" when i + 1 < args.Length:
+            case "-o" when i + 1 < args.Length:
+                outputPath = args[++i];
+                break;
+            case "--format" when i + 1 < args.Length:
+            case "-f" when i + 1 < args.Length:
+                format = args[++i];
+                break;
+            case "--include-conversations":
+                includeConversations = true;
+                break;
+        }
+    }
+
+    try
+    {
+        Console.WriteLine($"Fetching ticket #{ticketId}...");
+        var ticket = await client.GetTicketAsync(ticketId);
+        if (ticket == null)
+        {
+            Console.WriteLine($"Ticket {ticketId} not found.");
+            return 1;
+        }
+
+        Conversation[]? conversations = null;
+        if (includeConversations)
+        {
+            Console.WriteLine("Fetching conversations...");
+            conversations = await client.GetTicketConversationsAsync(ticketId);
+        }
+
+        var exportService = new ExportService();
+        await exportService.ExportTicketAsync(ticket, conversations, outputPath, format);
+
+        Console.WriteLine($"✓ Exported ticket #{ticketId} to {outputPath}");
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Export failed: {ex.Message}");
+        return 1;
+    }
 }
 
 static async Task<int> HandleAttachmentUpload(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)

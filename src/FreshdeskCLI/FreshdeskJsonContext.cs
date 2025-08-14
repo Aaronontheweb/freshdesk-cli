@@ -19,7 +19,28 @@ namespace FreshdeskCLI;
 [JsonSerializable(typeof(FreshdeskConfig))]
 [JsonSerializable(typeof(Dictionary<string, FreshdeskConfig>))]
 [JsonSerializable(typeof(Dictionary<string, object>))]
+[JsonSerializable(typeof(TicketWithConversations))]
+[JsonSerializable(typeof(TicketWithConversations[]))]
+[JsonSerializable(typeof(List<TicketWithConversations>))]
 public partial class FreshdeskJsonContext : JsonSerializerContext
+{
+}
+
+[JsonSourceGenerationOptions(
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    Converters = [typeof(DateTimeOffsetConverter)])]
+[JsonSerializable(typeof(Ticket))]
+[JsonSerializable(typeof(Ticket[]))]
+[JsonSerializable(typeof(Conversation))]
+[JsonSerializable(typeof(Conversation[]))]
+[JsonSerializable(typeof(Attachment))]
+[JsonSerializable(typeof(Attachment[]))]
+[JsonSerializable(typeof(TicketWithConversations))]
+[JsonSerializable(typeof(TicketWithConversations[]))]
+[JsonSerializable(typeof(List<TicketWithConversations>))]
+public partial class FreshdeskJsonIndentedContext : JsonSerializerContext
 {
 }
 

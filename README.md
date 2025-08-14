@@ -6,10 +6,13 @@ A fast, lightweight command-line interface for [Freshdesk](https://www.freshwork
 
 - 🚀 **Fast & Lightweight** - Native AOT compilation for instant startup and small binary size (~3-5MB)
 - 🔒 **Read-Only Mode** - Safe exploration mode that prevents accidental modifications
-- 📊 **Multiple Output Formats** - Table (human-readable), JSON, and CSV formats
+- 📊 **Multiple Output Formats** - Table (human-readable), JSON, CSV, XML, and Markdown formats
+- 📤 **Export Functionality** - Export tickets and conversations to multiple formats
+- 📥 **Bulk Downloads** - Download all attachments from tickets with progress indicators
 - 🔐 **Secure Credential Storage** - File-based with proper permissions and environment variable support
 - 🌍 **Cross-Platform** - Works on Linux, macOS, and Windows
 - ⚡ **Rate Limit Handling** - Automatic retry with exponential backoff
+- 📈 **Progress Indicators** - Visual progress bars for long-running operations
 
 ## Installation
 
@@ -152,6 +155,28 @@ freshdesk ticket note 123 --file internal-notes.txt
 freshdesk ticket note 123
 ```
 
+#### Export Tickets
+
+```bash
+# Export tickets to JSON
+freshdesk ticket export --format json --output tickets.json
+
+# Export to CSV
+freshdesk ticket export --format csv --output tickets.csv
+
+# Export to XML
+freshdesk ticket export --format xml --output tickets.xml
+
+# Export with conversations included (JSON only)
+freshdesk ticket export --format json --output tickets_full.json --include-conversations
+
+# Export single ticket to Markdown
+freshdesk ticket export 123 --format markdown --output ticket_123.md
+
+# Export single ticket with conversations
+freshdesk ticket export 123 --format json --output ticket_123.json --include-conversations
+```
+
 ### Attachment Operations
 
 #### List Attachments
@@ -169,6 +194,12 @@ freshdesk attachment download 123 456789
 
 # Download with custom output path
 freshdesk attachment download 123 456789 --output /path/to/save.pdf
+
+# Download all attachments from a ticket
+freshdesk attachment download-all 123 --output-dir ./attachments/
+
+# Bulk download with progress indicator
+freshdesk attachment download-all 123 --output-dir ./downloads/ --show-progress
 ```
 
 #### Upload Attachment
@@ -223,6 +254,7 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 | `ticket search <query>` | Search tickets |
 | `ticket reply <id>` | Reply to a ticket |
 | `ticket note <id>` | Add internal note to a ticket |
+| `ticket export` | Export tickets to JSON/CSV/XML/Markdown |
 
 ### Attachment Commands
 
@@ -230,6 +262,7 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 |---------|-------------|
 | `attachment list <ticket-id>` | List attachments for a ticket |
 | `attachment download <ticket-id> <attachment-id>` | Download an attachment |
+| `attachment download-all <ticket-id>` | Download all attachments from a ticket |
 | `attachment upload <ticket-id> <file>` | Upload file to ticket |
 
 ## Examples
@@ -381,13 +414,16 @@ echo $PATH
 
 ## Roadmap
 
-- [ ] Attachment upload/download support
+- [x] Attachment upload/download support
+- [x] Bulk download operations
+- [x] Progress indicators for long operations
+- [x] Export functionality (JSON/CSV/XML/Markdown)
 - [ ] Conversation management
-- [ ] Bulk operations
-- [ ] Progress indicators for long operations
 - [ ] Tab completion support
 - [ ] Interactive mode
 - [ ] Webhook support
+- [ ] Advanced filtering and sorting
+- [ ] Batch ticket operations
 
 ## License
 
