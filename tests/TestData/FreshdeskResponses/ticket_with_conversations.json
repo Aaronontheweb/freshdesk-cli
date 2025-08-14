@@ -1,0 +1,102 @@
+{
+  "id": 1,
+  "subject": "Sample ticket with attachments and conversations",
+  "description": "<div>Initial ticket description with an issue</div>",
+  "description_text": "Initial ticket description with an issue",
+  "status": 2,
+  "priority": 2,
+  "source": 0,
+  "requester_id": 1000000001,
+  "responder_id": 1000000002,
+  "group_id": 1000000003,
+  "tags": ["support", "attachment"],
+  "cc_emails": ["manager@example.com"],
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-16T15:45:00Z",
+  "due_by": "2024-01-17T17:00:00Z",
+  "fr_due_by": "2024-01-16T12:00:00Z",
+  "is_escalated": false,
+  "deleted": false,
+  "spam": false,
+  "attachments": [
+    {
+      "id": 1001,
+      "name": "screenshot.png",
+      "content_type": "image/png",
+      "size": 45678,
+      "created_at": "2024-01-15T10:30:00Z",
+      "updated_at": "2024-01-15T10:30:00Z",
+      "attachment_url": "https://cdn.freshdesk.com/data/helpdesk/attachments/production/1001/original/screenshot.png"
+    }
+  ],
+  "conversations": [
+    {
+      "id": 2001,
+      "user_id": 1000000001,
+      "body": "<div>This is the initial customer message with more details about the issue.</div>",
+      "body_text": "This is the initial customer message with more details about the issue.",
+      "incoming": true,
+      "private": false,
+      "source": 0,
+      "from_email": 1000000001,
+      "to_emails": ["support@company.com"],
+      "cc_emails": [],
+      "bcc_emails": [],
+      "created_at": "2024-01-15T11:00:00Z",
+      "updated_at": "2024-01-15T11:00:00Z",
+      "attachments": [
+        {
+          "id": 1002,
+          "name": "error_log.txt",
+          "content_type": "text/plain",
+          "size": 12345,
+          "created_at": "2024-01-15T11:00:00Z",
+          "updated_at": "2024-01-15T11:00:00Z",
+          "attachment_url": "https://cdn.freshdesk.com/data/helpdesk/attachments/production/1002/original/error_log.txt"
+        }
+      ]
+    },
+    {
+      "id": 2002,
+      "user_id": 1000000002,
+      "body": "<div>Thank you for contacting support. We are investigating the issue.</div>",
+      "body_text": "Thank you for contacting support. We are investigating the issue.",
+      "incoming": false,
+      "private": false,
+      "source": 0,
+      "from_email": null,
+      "to_emails": ["customer@example.com"],
+      "cc_emails": ["manager@example.com"],
+      "bcc_emails": [],
+      "created_at": "2024-01-15T11:30:00Z",
+      "updated_at": "2024-01-15T11:30:00Z",
+      "attachments": []
+    },
+    {
+      "id": 2003,
+      "user_id": 1000000002,
+      "body": "<div>We have identified the issue. Please find the solution attached.</div>",
+      "body_text": "We have identified the issue. Please find the solution attached.",
+      "incoming": false,
+      "private": false,
+      "source": 0,
+      "from_email": null,
+      "to_emails": ["customer@example.com"],
+      "cc_emails": ["manager@example.com"],
+      "bcc_emails": [],
+      "created_at": "2024-01-16T14:00:00Z",
+      "updated_at": "2024-01-16T14:00:00Z",
+      "attachments": [
+        {
+          "id": 1003,
+          "name": "solution_guide.pdf",
+          "content_type": "application/pdf",
+          "size": 234567,
+          "created_at": "2024-01-16T14:00:00Z",
+          "updated_at": "2024-01-16T14:00:00Z",
+          "attachment_url": "https://cdn.freshdesk.com/data/helpdesk/attachments/production/1003/original/solution_guide.pdf"
+        }
+      ]
+    }
+  ]
+}
