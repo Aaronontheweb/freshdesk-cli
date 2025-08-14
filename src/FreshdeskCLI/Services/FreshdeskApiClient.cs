@@ -203,10 +203,10 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
 
         fileName ??= Path.GetFileName(filePath);
         var fileBytes = await File.ReadAllBytesAsync(filePath);
-        
+
         // Freshdesk expects attachments to be added when updating the ticket
         using var content = new MultipartFormDataContent();
-        
+
         // Add the file
         var fileContent = new ByteArrayContent(fileBytes);
         fileContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
@@ -221,10 +221,10 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
             // Use PUT to update ticket with attachment
             var response = await _httpClient.PutAsync($"api/v2/tickets/{ticketId}", content);
             response.EnsureSuccessStatusCode();
-            
+
             var json = await response.Content.ReadAsStringAsync();
             var ticket = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.Ticket);
-            
+
             return ticket ?? throw new InvalidOperationException("No ticket returned from API");
         }
         catch (HttpRequestException ex)
