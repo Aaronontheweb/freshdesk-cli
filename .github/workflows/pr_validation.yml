@@ -19,7 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: "Checkout"
@@ -36,19 +36,135 @@ jobs:
       - name: "Restore .NET tools"
         run: dotnet tool restore
 
-      - name: "Update release notes"
-        shell: pwsh
-        run: |
-          ./build.ps1
+      - name: "dotnet restore"
+        run: dotnet restore
 
       - name: "dotnet build"
         run: dotnet build -c Release
 
-      # .NET Framework tests can't run reliably on Linux, so we only do .NET 8
-
       - name: "dotnet test"
-        shell: bash
-        run: dotnet test -c Release 
+        run: dotnet test -c Release --no-build --verbosity normal
 
-      - name: "dotnet pack"
-        run: dotnet pack -c Release -o ./bin/nuget
+  aot-validation:
+    name: AOT-${{matrix.runtime}}
+    runs-on: ${{matrix.os}}
+    
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            runtime: linux-x64
+            max-size-mb: 15
+          - os: ubuntu-latest
+            runtime: linux-arm64
+            max-size-mb: 15
+          - os: windows-latest
+            runtime: win-x64
+            max-size-mb: 15
+          - os: macos-latest
+            runtime: osx-x64
+            max-size-mb: 15
+          - os: macos-latest
+            runtime: osx-arm64
+            max-size-mb: 15
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: "Install .NET SDK"
+        uses: actions/setup-dotnet@v4.3.1
+        with:
+          global-json-file: "./global.json"
+
+      - name: "Restore dependencies"
+        run: dotnet restore
+
+      - name: "AOT Publish"
+        run: |
+          dotnet publish src/FreshdeskCLI \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained \
+            -o ./publish/${{ matrix.runtime }} \
+            /p:TrimmerSingleWarn=false \
+            /p:PublishTrimmed=true
+
+      - name: "Check AOT warnings"
+        if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'linux-x64'
+        run: |
+          dotnet publish src/FreshdeskCLI \
+            -c Release \
+            -r linux-x64 \
+            --self-contained \
+            /p:TrimmerSingleWarn=false \
+            /p:PublishTrimmed=true \
+            /p:TreatWarningsAsErrors=true \
+            /warnAsError:IL2026 \
+            /warnAsError:IL2057 \
+            /warnAsError:IL2067 \
+            /warnAsError:IL2075 \
+            /warnAsError:IL2096 \
+            /warnAsError:IL3050
+
+      - name: "Test AOT binary"
+        shell: bash
+        run: |
+          if [[ "${{ matrix.runtime }}" == win-* ]]; then
+            ./publish/${{ matrix.runtime }}/freshdesk.exe --version
+            ./publish/${{ matrix.runtime }}/freshdesk.exe --test-aot
+          else
+            ./publish/${{ matrix.runtime }}/freshdesk --version
+            ./publish/${{ matrix.runtime }}/freshdesk --test-aot
+          fi
+
+      - name: "Check binary size"
+        shell: bash
+        run: |
+          if [[ "${{ matrix.runtime }}" == win-* ]]; then
+            BINARY_PATH="./publish/${{ matrix.runtime }}/freshdesk.exe"
+          else
+            BINARY_PATH="./publish/${{ matrix.runtime }}/freshdesk"
+          fi
+          
+          SIZE_BYTES=$(stat -c%s "$BINARY_PATH" 2>/dev/null || stat -f%z "$BINARY_PATH" 2>/dev/null)
+          SIZE_MB=$((SIZE_BYTES / 1024 / 1024))
+          
+          echo "Binary size: ${SIZE_MB}MB (limit: ${{ matrix.max-size-mb }}MB)"
+          
+          if [ $SIZE_MB -gt ${{ matrix.max-size-mb }} ]; then
+            echo "Error: Binary size exceeds limit!"
+            exit 1
+          fi
+
+      - name: "Upload AOT artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: freshdesk-${{ matrix.runtime }}
+          path: ./publish/${{ matrix.runtime }}/
+          retention-days: 7
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: "Install .NET SDK"
+        uses: actions/setup-dotnet@v4.3.1
+        with:
+          global-json-file: "./global.json"
+
+      - name: "Check formatting"
+        run: |
+          dotnet format --verify-no-changes --verbosity diagnostic
+
+      - name: "Run code analysis"
+        run: |
+          dotnet build -c Release /p:EnableNETAnalyzers=true /p:AnalysisMode=AllEnabledByDefault

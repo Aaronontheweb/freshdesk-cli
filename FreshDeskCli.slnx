@@ -6,4 +6,7 @@
     <File Path="NuGet.Config" />
     <File Path="README.md" />
   </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/FreshdeskCLI/FreshdeskCLI.csproj" />
+  </Folder>
 </Solution>

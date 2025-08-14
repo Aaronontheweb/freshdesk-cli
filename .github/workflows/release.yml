@@ -1,0 +1,296 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  build-binaries:
+    name: Build-${{matrix.runtime}}
+    runs-on: ${{matrix.os}}
+    
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            runtime: linux-x64
+            archive: tar.gz
+          - os: ubuntu-latest
+            runtime: linux-arm64
+            archive: tar.gz
+          - os: windows-latest
+            runtime: win-x64
+            archive: zip
+          - os: macos-latest
+            runtime: osx-x64
+            archive: tar.gz
+          - os: macos-latest
+            runtime: osx-arm64
+            archive: tar.gz
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: "Install .NET SDK"
+        uses: actions/setup-dotnet@v4.3.1
+        with:
+          global-json-file: "./global.json"
+
+      - name: "Set version"
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Building version: $VERSION"
+
+      - name: "Restore dependencies"
+        run: dotnet restore
+
+      - name: "Publish AOT binary"
+        run: |
+          dotnet publish src/FreshdeskCLI \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            --self-contained \
+            -o ./publish/${{ matrix.runtime }} \
+            -p:Version=${{ env.VERSION }} \
+            -p:AssemblyVersion=${{ env.VERSION }} \
+            -p:FileVersion=${{ env.VERSION }} \
+            /p:PublishTrimmed=true \
+            /p:PublishSingleFile=true
+
+      - name: "Create archive (Linux/macOS)"
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          cd ./publish/${{ matrix.runtime }}
+          tar -czf ../../freshdesk-${{ env.VERSION }}-${{ matrix.runtime }}.tar.gz *
+          cd ../..
+          echo "ARCHIVE_PATH=freshdesk-${{ env.VERSION }}-${{ matrix.runtime }}.tar.gz" >> $GITHUB_ENV
+
+      - name: "Create archive (Windows)"
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "./publish/${{ matrix.runtime }}/*" -DestinationPath "freshdesk-${{ env.VERSION }}-${{ matrix.runtime }}.zip"
+          echo "ARCHIVE_PATH=freshdesk-${{ env.VERSION }}-${{ matrix.runtime }}.zip" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: "Calculate checksums"
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            shasum -a 256 ${{ env.ARCHIVE_PATH }} > ${{ env.ARCHIVE_PATH }}.sha256
+          else
+            sha256sum ${{ env.ARCHIVE_PATH }} > ${{ env.ARCHIVE_PATH }}.sha256
+          fi
+          cat ${{ env.ARCHIVE_PATH }}.sha256
+
+      - name: "Upload release artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.runtime }}
+          path: |
+            ${{ env.ARCHIVE_PATH }}
+            ${{ env.ARCHIVE_PATH }}.sha256
+          retention-days: 7
+
+  create-release:
+    name: Create Release
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    
+    permissions:
+      contents: write
+      
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: "Download artifacts"
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: ./releases
+
+      - name: "Extract version"
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: "Generate release notes"
+        run: |
+          cat > release-notes.md << EOF
+          # Freshdesk CLI v${{ env.VERSION }}
+          
+          ## Installation
+          
+          ### Linux/macOS
+          \`\`\`bash
+          # Download for your platform
+          wget https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-linux-x64.tar.gz
+          
+          # Extract
+          tar -xzf freshdesk-${{ env.VERSION }}-linux-x64.tar.gz
+          
+          # Make executable and move to PATH
+          chmod +x freshdesk
+          sudo mv freshdesk /usr/local/bin/
+          \`\`\`
+          
+          ### Windows
+          \`\`\`powershell
+          # Download
+          Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-win-x64.zip" -OutFile "freshdesk.zip"
+          
+          # Extract
+          Expand-Archive -Path "freshdesk.zip" -DestinationPath "."
+          \`\`\`
+          
+          ## Available Downloads
+          
+          | Platform | Architecture | Download |
+          |----------|-------------|----------|
+          | Linux | x64 | [freshdesk-${{ env.VERSION }}-linux-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-linux-x64.tar.gz) |
+          | Linux | ARM64 | [freshdesk-${{ env.VERSION }}-linux-arm64.tar.gz](https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-linux-arm64.tar.gz) |
+          | Windows | x64 | [freshdesk-${{ env.VERSION }}-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-win-x64.zip) |
+          | macOS | x64 | [freshdesk-${{ env.VERSION }}-osx-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-osx-x64.tar.gz) |
+          | macOS | ARM64 | [freshdesk-${{ env.VERSION }}-osx-arm64.tar.gz](https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-osx-arm64.tar.gz) |
+          
+          ## Verify Downloads
+          
+          All downloads include SHA256 checksums. To verify:
+          
+          \`\`\`bash
+          sha256sum -c freshdesk-${{ env.VERSION }}-linux-x64.tar.gz.sha256
+          \`\`\`
+          
+          ## What's Changed
+          
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/v${{ env.VERSION }}/CHANGELOG.md) for details.
+          EOF
+
+      - name: "Create GitHub Release"
+        uses: softprops/action-gh-release@v1
+        with:
+          name: v${{ env.VERSION }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
+          files: |
+            ./releases/*
+          generate_release_notes: true
+          
+  build-docker:
+    name: Build Docker Image
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    
+    permissions:
+      packages: write
+      contents: read
+      
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4.2.2
+
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Log in to GitHub Container Registry"
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Extract metadata"
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      - name: "Create Dockerfile"
+        run: |
+          cat > Dockerfile << 'EOF'
+          # Build stage
+          FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+          WORKDIR /src
+          
+          # Copy project files
+          COPY global.json .
+          COPY Directory.*.props .
+          COPY FreshDeskCli.slnx .
+          COPY src/FreshdeskCLI/*.csproj ./src/FreshdeskCLI/
+          RUN dotnet restore src/FreshdeskCLI/FreshdeskCLI.csproj
+          
+          # Copy source code
+          COPY src/FreshdeskCLI/. ./src/FreshdeskCLI/
+          
+          # Build and publish AOT
+          RUN dotnet publish src/FreshdeskCLI/FreshdeskCLI.csproj \
+              -c Release \
+              -r linux-x64 \
+              --self-contained \
+              -o /app/publish
+          
+          # Runtime stage
+          FROM ubuntu:22.04
+          WORKDIR /app
+          
+          # Install required libraries for AOT binary
+          RUN apt-get update && \
+              apt-get install -y --no-install-recommends \
+              ca-certificates \
+              libicu70 \
+              libssl3 && \
+              rm -rf /var/lib/apt/lists/*
+          
+          # Copy published binary
+          COPY --from=build /app/publish/freshdesk /usr/local/bin/freshdesk
+          
+          # Make executable
+          RUN chmod +x /usr/local/bin/freshdesk
+          
+          # Create non-root user
+          RUN useradd -m -s /bin/bash freshdesk
+          USER freshdesk
+          
+          ENTRYPOINT ["freshdesk"]
+          CMD ["--help"]
+          EOF
+
+      - name: "Build and push Docker image"
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
