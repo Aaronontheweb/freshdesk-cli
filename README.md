@@ -1,6 +1,6 @@
 # Freshdesk CLI
 
-A fast, lightweight command-line interface for Freshdesk built with .NET 9 and AOT compilation.
+A fast, lightweight command-line interface for [Freshdesk](https://www.freshworks.com/freshdesk/) built with .NET 9 and AOT compilation.
 
 ## Features
 
