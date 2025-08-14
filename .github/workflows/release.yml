@@ -59,7 +59,13 @@ jobs:
             VERSION=${GITHUB_REF#refs/tags/}
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          
+          # Extract numeric version for AssemblyVersion (e.g., 1.0.0 from 1.0.0-beta1)
+          ASSEMBLY_VERSION=$(echo $VERSION | cut -d'-' -f1)
+          echo "ASSEMBLY_VERSION=$ASSEMBLY_VERSION" >> $GITHUB_ENV
+          
           echo "Building version: $VERSION"
+          echo "Assembly version: $ASSEMBLY_VERSION"
 
       - name: "Restore dependencies"
         run: dotnet restore
@@ -72,8 +78,8 @@ jobs:
             --self-contained \
             -o ./publish/${{ matrix.runtime }} \
             -p:Version=${{ env.VERSION }} \
-            -p:AssemblyVersion=${{ env.VERSION }} \
-            -p:FileVersion=${{ env.VERSION }} \
+            -p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }} \
+            -p:FileVersion=${{ env.ASSEMBLY_VERSION }} \
             /p:PublishTrimmed=true \
             /p:PublishSingleFile=true
 
