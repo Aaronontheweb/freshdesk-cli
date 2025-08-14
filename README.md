@@ -1,70 +1,345 @@
-# build-system-template
-Akka.NET project build system template that provides standardized build and CI/CD configuration for all Akka.NET projects.
+# Freshdesk CLI
 
-## Build System Overview
-This repository contains our standardized build system setup that can be used across all Akka.NET projects. Here are the key components and practices we follow:
+A fast, lightweight command-line interface for Freshdesk built with .NET 9 and AOT compilation.
 
-### CI/CD Configuration
-We primarily use GitHub Actions for our CI/CD pipelines, but also maintain Azure DevOps pipeline examples. You can find the configuration examples in:
-- `.github/workflows/` - GitHub Actions pipeline examples
-- `.azuredevops/` - Azure DevOps pipeline examples
+## Features
 
-### SDK Version Management
-We use `global.json` to pin the .NET SDK version for both CI/CD environments and local development. This ensures consistent builds across all environments and developers.
+- 🚀 **Fast & Lightweight** - Native AOT compilation for instant startup and small binary size (~3-5MB)
+- 🔒 **Read-Only Mode** - Safe exploration mode that prevents accidental modifications
+- 📊 **Multiple Output Formats** - Table (human-readable), JSON, and CSV formats
+- 🔐 **Secure Credential Storage** - File-based with proper permissions and environment variable support
+- 🌍 **Cross-Platform** - Works on Linux, macOS, and Windows
+- ⚡ **Rate Limit Handling** - Automatic retry with exponential backoff
 
-### .NET Tools
-We use local .NET tools to enhance our build and documentation process. The tools are configured in `.config/dotnet-tools.json` and include:
+## Installation
 
-- [Incrementalist](https://github.com/petabridge/Incrementalist) (v1.0.0-beta4) - Used for determining which projects need to be rebuilt based on Git changes
-- [DocFx](https://dotnet.github.io/docfx/) (v2.78.3) - Used for generating documentation
+### From Source
 
-To restore these tools in your local environment, run:
-```powershell
-dotnet tool restore
+```bash
+# Clone the repository
+git clone https://github.com/Aaronontheweb/freshdesk-cli.git
+cd freshdesk-cli
+
+# Build and install globally (Linux/macOS)
+dotnet publish src/FreshdeskCLI -c Release -r linux-x64 /p:PublishAot=true
+sudo cp ./publish/linux-x64/freshdesk /usr/local/bin/
+
+# Or run directly
+dotnet run --project src/FreshdeskCLI -- --help
 ```
 
-This command is automatically executed in our CI/CD pipelines (both GitHub Actions and Azure DevOps) to ensure tools are available during builds.
+### Pre-built Binaries
 
-### Centralized Package and Build Management
-We utilize two key MSBuild files for centralized configuration:
+Download the latest release for your platform from the [Releases](https://github.com/Aaronontheweb/freshdesk-cli/releases) page.
 
-1. `Directory.Packages.props` - Implements [Central Package Version Management](https://learn.microsoft.com/nuget/consume-packages/Central-Package-Management) for consistent NuGet package versions across all projects in the solution.
+## Configuration
 
-2. `Directory.Build.props` - Defines common build properties, including:
-   - Copyright and author information
-   - Source linking configuration
-   - NuGet package metadata
-   - Common compiler settings
-   - Target framework definitions
+### Initial Setup
 
-### Code Coverage Configuration
-The `coverlet.runsettings` file configures code coverage collection using Coverlet, with settings for:
-- Multiple coverage report formats (JSON, Cobertura, LCOV, TeamCity, OpenCover)
-- Test assembly exclusions
-- Source linking integration
-- Performance optimizations
+```bash
+# Configure with your Freshdesk credentials
+freshdesk config set --domain yourcompany --api-key your_api_key_here
 
-### Release Management
-Our release process is streamlined through:
-- `RELEASE_NOTES.md` - Contains version history and release notes
-- `build.ps1` - PowerShell script that processes release notes and updates version information
-- Supporting scripts in `/scripts`:
-  - `bumpVersion.ps1` - Updates version numbers
-  - `getReleaseNotes.ps1` - Parses release notes
+# Test the connection
+freshdesk config test
 
-The build system primarily relies on standard `dotnet` CLI commands, with the PowerShell scripts mainly handling release note processing and version management.
-
-### Solution Format
-We prefer the new `.slnx` XML-based solution format over the traditional `.sln` format. This requires .NET 9 SDK or later. The new format is more concise and easier to work with. You can migrate existing solutions using:
-
-```powershell
-dotnet sln migrate
+# View current configuration
+freshdesk config get
 ```
 
-For more information about the new `.slnx` format, see the [official announcement](https://devblogs.microsoft.com/dotnet/introducing-slnx-support-dotnet-cli/).
+### Environment Variables
 
-## Getting Started
-1. Ensure you have the correct .NET SDK version installed (check `global.json`)
-2. Clone this repository
-3. Run `dotnet build` to verify the build system
-4. Customize the configuration files for your specific project needs
+You can also use environment variables (useful for CI/CD):
+
+```bash
+export FRESHDESK_API_KEY=your_api_key_here
+export FRESHDESK_DOMAIN=yourcompany
+```
+
+### Configuration File Location
+
+Configuration is stored at `~/.freshdesk/config.json` with secure file permissions (user-only on Unix systems).
+
+## Usage
+
+### Read-Only Mode
+
+Add `--read-only` or `-ro` to any command to prevent write operations:
+
+```bash
+# Safe exploration - no accidental changes
+freshdesk --read-only ticket list
+freshdesk --read-only ticket get 123
+```
+
+### Ticket Operations
+
+#### List Tickets
+
+```bash
+# List tickets (default format: table)
+freshdesk ticket list
+
+# With pagination
+freshdesk ticket list --page 2 --limit 50
+
+# Export as JSON
+freshdesk ticket list --format json
+
+# Export as CSV
+freshdesk ticket list --format csv > tickets.csv
+```
+
+#### Get Ticket Details
+
+```bash
+# View ticket details
+freshdesk ticket get 123
+
+# Get as JSON
+freshdesk ticket get 123 --format json
+```
+
+#### Create Ticket
+
+```bash
+# Create a new ticket
+freshdesk ticket create \
+  --subject "Bug in login page" \
+  --email "customer@example.com" \
+  --description "Cannot login with valid credentials" \
+  --priority high
+```
+
+#### Update Ticket
+
+```bash
+# Update ticket status and priority
+freshdesk ticket update 123 --status resolved --priority low
+```
+
+#### Search Tickets
+
+```bash
+# Search tickets (client-side filtering)
+freshdesk ticket search "login issue"
+freshdesk ticket search "user@example.com"
+```
+
+### Output Formats
+
+All list and get commands support multiple output formats:
+
+- **table** (default) - Human-readable table format
+- **json** - Machine-readable JSON
+- **csv** - Excel-compatible CSV
+
+Example:
+```bash
+freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
+```
+
+## Command Reference
+
+### Global Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--help` | `-h` | Show help information |
+| `--version` | `-v` | Show version information |
+| `--read-only` | `-ro` | Run in read-only mode (blocks all write operations) |
+
+### Config Commands
+
+| Command | Description |
+|---------|-------------|
+| `config set` | Set configuration values |
+| `config get` | Display current configuration |
+| `config test` | Test connection to Freshdesk API |
+
+### Ticket Commands
+
+| Command | Description |
+|---------|-------------|
+| `ticket list` | List tickets with pagination |
+| `ticket get <id>` | Get ticket details |
+| `ticket create` | Create a new ticket |
+| `ticket update <id>` | Update ticket status/priority |
+| `ticket search <query>` | Search tickets |
+
+## Examples
+
+### Daily Operations
+
+```bash
+# Morning ticket review
+freshdesk --read-only ticket list --format table
+
+# Export yesterday's tickets
+freshdesk ticket list --format csv > daily_tickets.csv
+
+# Quick status update
+freshdesk ticket update 456 --status resolved
+```
+
+### Automation
+
+```bash
+# Check for high priority tickets
+freshdesk ticket list --format json | \
+  jq '.[] | select(.priority == "High") | {id, subject}'
+
+# Count open tickets
+freshdesk ticket list --format json | \
+  jq '[.[] | select(.status == "Open")] | length'
+```
+
+### Safe Exploration
+
+```bash
+# Always use read-only mode when exploring
+alias fd-safe='freshdesk --read-only'
+
+fd-safe ticket list
+fd-safe ticket get 789
+```
+
+## Building from Source
+
+### Prerequisites
+
+- .NET 9 SDK or later
+- Git
+
+### Build Commands
+
+```bash
+# Clone repository
+git clone https://github.com/Aaronontheweb/freshdesk-cli.git
+cd freshdesk-cli
+
+# Run tests
+dotnet test
+
+# Build for current platform
+dotnet build -c Release
+
+# Build with AOT for production (Linux)
+dotnet publish src/FreshdeskCLI -c Release -r linux-x64 /p:PublishAot=true
+
+# Build for other platforms
+dotnet publish src/FreshdeskCLI -c Release -r win-x64 /p:PublishAot=true
+dotnet publish src/FreshdeskCLI -c Release -r osx-x64 /p:PublishAot=true
+dotnet publish src/FreshdeskCLI -c Release -r osx-arm64 /p:PublishAot=true
+
+# Test AOT compatibility
+dotnet run --project src/FreshdeskCLI -- --test-aot
+```
+
+### Supported Platforms
+
+- `linux-x64` - Linux 64-bit
+- `linux-arm64` - Linux ARM 64-bit
+- `win-x64` - Windows 64-bit
+- `osx-x64` - macOS Intel
+- `osx-arm64` - macOS Apple Silicon
+
+## Architecture
+
+- **AOT Compilation** - Native ahead-of-time compilation for fast startup and small binaries
+- **Source Generators** - Zero-reflection JSON serialization for AOT compatibility
+- **Reactive Rate Limiting** - Handles API rate limits gracefully with automatic retry
+- **Secure Storage** - Credentials stored with proper file permissions
+
+## Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+### Development Guidelines
+
+1. Maintain AOT compatibility - no reflection
+2. Keep binary size under 15MB
+3. Follow existing code style
+4. Add tests for new features
+5. Update documentation
+
+### Pull Request Process
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## Troubleshooting
+
+### Common Issues
+
+**Authentication Failed**
+```bash
+# Check your API key and domain
+freshdesk config get
+freshdesk config test
+```
+
+**Rate Limited**
+The CLI automatically handles rate limits with exponential backoff. If you consistently hit limits, consider reducing request frequency.
+
+**Permission Denied**
+```bash
+# Ensure proper permissions on config directory
+chmod 700 ~/.freshdesk
+chmod 600 ~/.freshdesk/config.json
+```
+
+**Binary Not Found**
+```bash
+# Ensure the binary is in your PATH
+echo $PATH
+# Or use full path
+/usr/local/bin/freshdesk --version
+```
+
+## Performance
+
+- **Startup Time**: < 50ms (native AOT)
+- **Binary Size**: ~3-5MB (platform dependent)
+- **Memory Usage**: < 20MB typical
+- **Rate Limiting**: Automatic with exponential backoff
+
+## Security
+
+- API keys are never logged or displayed in full
+- Configuration files use secure permissions (600 on Unix)
+- Environment variables supported for CI/CD
+- Read-only mode for safe exploration
+
+## Roadmap
+
+- [ ] Attachment upload/download support
+- [ ] Conversation management
+- [ ] Bulk operations
+- [ ] Progress indicators for long operations
+- [ ] Tab completion support
+- [ ] Interactive mode
+- [ ] Webhook support
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/Aaronontheweb/freshdesk-cli/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Aaronontheweb/freshdesk-cli/discussions)
+
+## Acknowledgments
+
+Built with ❤️ using:
+- [.NET 9](https://dotnet.microsoft.com/)
+- [System.Text.Json](https://docs.microsoft.com/en-us/dotnet/api/system.text.json)
+- [Freshdesk API v2](https://developers.freshdesk.com/api/)
+
+## Author
+
+Aaron Stannard - [@Aaronontheweb](https://github.com/Aaronontheweb)
