@@ -11,6 +11,7 @@ public sealed class Ticket
     public TicketSource Source { get; set; }
     public long? RequesterId { get; set; }
     public long? ResponderId { get; set; }
+    public string? Email { get; set; }  // Requester email
     public long? GroupId { get; set; }
     public string[] Tags { get; set; } = [];
     public string[] CcEmails { get; set; } = [];
