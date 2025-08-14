@@ -1,235 +1,167 @@
-# CLAUDE.md - Freshdesk CLI Project Context
+# Freshdesk CLI - AI Assistant Instructions
 
 ## Project Overview
-This is a command-line interface (CLI) tool for interacting with the Freshdesk API v2, built with C# and AOT (Ahead-of-Time) compilation for optimal performance and single-file deployment.
+This is a command-line interface (CLI) for Freshdesk API v2, built with C# and .NET 9 using AOT (Ahead-of-Time) compilation for optimal performance and small binary size.
 
-## Key Technical Decisions
+## Key Technical Constraints
 
-### Architecture
-- **Language**: C# with .NET 8 and AOT compilation
-- **CLI Framework**: System.CommandLine (Microsoft-supported, AOT-compatible)
-- **JSON Serialization**: System.Text.Json with source generators (no reflection)
-- **HTTP Client**: Built-in HttpClient with custom handlers for auth and rate limiting
-- **Target Binary Size**: < 15MB standalone executable
-- **Solution Format**: Using `.slnx` format (keep this, don't change to .sln)
+### AOT Compilation Requirements
+- **NO REFLECTION**: All JSON serialization must use source generators
+- Use `System.Text.Json` with `JsonSerializerContext` 
+- All models must be registered in `FreshdeskJsonContext.cs`
+- Target binary size: < 15MB
 
-### Testing Strategy
-**IMPORTANT**: We cannot test against live Freshdesk APIs. All testing must use:
-- Mock HTTP responses from Freshdesk documentation
-- Fake test server for integration tests
-- Sample JSON responses stored in `tests/TestData/FreshdeskResponses/`
+### API Limitations
+- **NO LIVE TESTING**: We cannot test against a real Freshdesk instance
+- Use mock data from Freshdesk documentation for testing
+- Rate limiting is handled reactively (429 responses) not proactively
+- Basic Auth with API key as username, 'X' as password
 
-### Build Commands
-Always use `dotnet` commands, avoid direct XML manipulation:
-```bash
-# Add project to solution
-dotnet sln FreshDeskCli.slnx add src/FreshdeskCLI/FreshdeskCLI.csproj
+## Architecture Decisions
 
-# Add package
-dotnet add package System.CommandLine --prerelease
+### Configuration Management
+- File-based storage at `~/.freshdesk/config.json`
+- Multi-profile support (like AWS CLI)
+- Environment variable fallback (`FRESHDESK_API_KEY`, `FRESHDESK_DOMAIN`)
+- Secure file permissions (user-only on Unix)
 
-# Build AOT
-dotnet publish -c Release -r linux-x64
-```
-
-## Implementation Status
-
-### Completed Documentation
-- ✅ Implementation plan and phases
-- ✅ Models with AOT-compatible serialization
-- ✅ Services (API client, config, rate limiting, attachments)
-- ✅ Commands with LLM-discoverable help
-- ✅ Testing strategy with mock data
-- ✅ Build and deployment guide
-- ✅ Credential management
-
-### Next Steps
-1. Create the actual C# project structure
-2. Implement models with source generators
-3. Build core services with proper error handling
-4. Implement CLI commands
-5. Create comprehensive test suite with mock data
-6. Set up CI/CD pipeline
-
-## API Integration Notes
-
-### Freshdesk API v2 Constraints
-- **Rate Limiting**: 700-1000 requests/hour (plan-dependent)
-- **Search Limitations**: Max 300 results, no per_page parameter
-- **Attachments**: Not available in list endpoints, must fetch individual tickets
-- **Authentication**: Basic Auth with API key as username, "X" as password
-
-### Key Endpoints
-```
-GET  /api/v2/tickets?page={n}&per_page={100}      # List tickets
-GET  /api/v2/tickets/{id}                         # Get ticket
-GET  /api/v2/tickets/{id}?include=conversations   # With conversations
-GET  /api/v2/search/tickets?query={filter}        # Search (limited)
-PUT  /api/v2/tickets/{id}                         # Update ticket
-POST /api/v2/tickets/{id}/reply                   # Add reply
-```
-
-## Credential Storage
-Following industry standards (AWS CLI, GitHub CLI):
-- **Primary**: `~/.freshdesk/config.json` with 600 permissions
-- **Override**: Environment variables (FRESHDESK_DOMAIN, FRESHDESK_API_KEY)
-- **Future**: OS keyring integration
-
-## Command Structure
-```
-freshdesk
-├── auth
-│   ├── login    # Configure credentials
-│   ├── status   # Show auth status
-│   └── logout   # Remove credentials
-├── tickets
-│   ├── list     # List tickets
-│   ├── get      # Get ticket details
-│   ├── search   # Search tickets
-│   ├── update   # Update ticket
-│   └── reply    # Reply to ticket
-├── attachments
-│   ├── list     # List attachments
-│   └── download # Download attachments
-└── help         # Help (with --format llm for LLM discovery)
-```
-
-## Help Discovery for LLMs
-The CLI provides structured help output for LLM consumption:
-```bash
-freshdesk help --format llm
-```
-Returns JSON with:
-- Complete command schema
-- Parameter types and defaults
-- Authentication requirements
-- Example usage
-- Error codes
-
-## AOT Compatibility Requirements
-1. **No Reflection**: Use source generators for all serialization
-2. **No Dynamic Code**: No runtime code generation
-3. **Explicit Registration**: All types must be registered in FreshdeskJsonContext
-4. **Trimming Safe**: No trimming warnings allowed
-
-## Testing Guidelines
-
-### Mock Data Location
-```
-tests/TestData/
-├── FreshdeskResponses/
-│   ├── tickets_list.json
-│   ├── ticket_detail.json
-│   ├── ticket_with_conversations.json
-│   ├── search_results.json
-│   └── error_responses.json
-└── MockConfigs/
-    └── test_config.json
-```
-
-### Test Execution
-```bash
-# Run all tests
-dotnet test
-
-# Run with coverage
-dotnet test --collect:"XPlat Code Coverage"
-
-# Validate AOT compatibility
-dotnet publish -c Release -r linux-x64 /p:TrimmerSingleWarn=false
-```
-
-## Performance Goals
-- **Startup Time**: < 100ms
-- **Memory Usage**: < 50MB for typical operations
-- **Binary Size**: < 15MB
-- **Concurrent Downloads**: 3 attachments in parallel
-
-## Security Notes
-- Never log API keys
-- Mask credentials in output
-- Clear sensitive data from memory after use
-- Validate all user input
-- Use secure input for password prompts
-
-## Development Workflow
-
-### Setting Up
-```bash
-# Clone and checkout branch
-git checkout freshdesk-cli-implementation
-
-# Create project
-dotnet new console -n FreshdeskCLI -o src/FreshdeskCLI
-dotnet sln FreshDeskCli.slnx add src/FreshdeskCLI/FreshdeskCLI.csproj
-
-# Add dependencies
-cd src/FreshdeskCLI
-dotnet add package System.CommandLine --prerelease
-dotnet add package Microsoft.Extensions.Hosting
-```
-
-### Building
-```bash
-# Development build
-dotnet build
-
-# Release with AOT
-dotnet publish -c Release -r linux-x64
-
-# Run locally
-dotnet run -- tickets list
-```
-
-### Before Committing
-1. Run tests: `dotnet test`
-2. Check AOT compatibility: `dotnet publish -c Release -r linux-x64`
-3. Verify no trimming warnings
-4. Update documentation if needed
-
-## Common Patterns
+### Command Structure
+- Simple command routing without complex System.CommandLine features
+- Read-only mode (`--read-only`) for safe operations
+- Multiple output formats (table, JSON, CSV)
 
 ### Error Handling
-Always provide actionable error messages:
+- Reactive rate limiting with exponential backoff
+- Graceful handling of 404s and network errors
+- Clear error messages for users
+
+## Code Style Guidelines
+
+### General Rules
+- Use `var` for obvious types
+- Prefer expression-bodied members for simple properties
+- Use collection expressions `[]` instead of `new()`
+- NO COMMENTS unless absolutely necessary
+- Use meaningful variable names instead of comments
+
+### AOT-Specific Patterns
 ```csharp
-throw new AuthenticationException(
-    "Not authenticated. Run 'freshdesk auth login' first.");
+// GOOD - AOT-compatible
+var json = JsonSerializer.Serialize(ticket, FreshdeskJsonContext.Default.Ticket);
+
+// BAD - Uses reflection
+var json = JsonSerializer.Serialize(ticket);
 ```
 
-### Progress Reporting
-Use IProgress<T> for long operations:
-```csharp
-var progress = new Progress<DownloadProgress>(p => 
-    Console.WriteLine($"Downloading: {p.PercentComplete:F1}%"));
+### Async/Await
+- Always use `ConfigureAwait(false)` in library code (not needed here as it's an app)
+- Use `CancellationToken` throughout the chain
+- Prefer `ValueTask` for hot paths (not critical for CLI)
+
+## Testing Strategy
+
+### Mock Data Approach
+Since we cannot test against a live Freshdesk instance:
+1. Use sample JSON responses from Freshdesk API documentation
+2. Create mock HTTP responses for unit tests
+3. Test serialization/deserialization with known good data
+4. Verify AOT compatibility with `--test-aot` flag
+
+### Test Commands
+```bash
+# Test AOT compatibility
+dotnet run -- --test-aot
+
+# Test in read-only mode (safe)
+dotnet run -- --read-only ticket list
+
+# Test with mock config
+export FRESHDESK_API_KEY=test_key
+export FRESHDESK_DOMAIN=test
+dotnet run -- config test
 ```
 
-### Cancellation
-Support cancellation tokens throughout:
-```csharp
-public async Task<Ticket> GetTicketAsync(
-    long id, 
-    CancellationToken cancellationToken = default)
+## Common Tasks
+
+### Adding a New Model
+1. Create the model class in `Models/`
+2. Add JsonSerializable attribute in `FreshdeskJsonContext.cs`
+3. Test serialization with `--test-aot`
+
+### Adding a New Command
+1. Add handler method in `Program.cs`
+2. Update help text in `ShowHelp()`
+3. Add read-only check if it's a write operation
+4. Update README with usage examples
+
+### Updating Dependencies
+- Check AOT compatibility before adding packages
+- Prefer packages with source generators over reflection
+- Test binary size after updates
+
+## Performance Considerations
+
+### Binary Size Optimization
+- Use `TrimMode=full` for aggressive trimming
+- Avoid large dependencies
+- Consider lazy loading for optional features
+
+### Runtime Performance
+- CLI should start in < 100ms
+- Use streaming for large data sets
+- Implement pagination for list operations
+
+## Security Considerations
+
+### Credential Storage
+- Never log or display full API keys
+- Use secure file permissions on config files
+- Support environment variables for CI/CD
+- Clear sensitive data from memory after use
+
+### API Safety
+- Implement read-only mode for exploration
+- Confirm destructive operations
+- Rate limit handling to prevent API abuse
+- Validate all user input
+
+## Future Enhancements
+
+### Planned Features
+- Attachment handling (upload/download)
+- Conversation management
+- Bulk operations
+- Progress indicators
+- Tab completion support
+
+### Potential Improvements
+- Keyring/credential manager integration
+- Interactive mode for complex operations
+- Export to multiple formats
+- Webhook support for real-time updates
+
+## Debugging Tips
+
+### Common Issues
+1. **AOT Warnings**: Check that all types are registered in JsonContext
+2. **Rate Limiting**: Implement exponential backoff
+3. **Large Responses**: Use pagination and streaming
+4. **Auth Failures**: Verify Basic Auth format
+
+### Useful Commands
+```bash
+# Check binary size
+dotnet publish -c Release -r linux-x64 /p:PublishAot=true
+ls -lh ./publish/linux-x64/freshdesk
+
+# Check for reflection usage
+dotnet build /p:TrimmerSingleWarn=false
+
+# Test specific scenarios
+dotnet run -- --read-only ticket list --format json | jq '.'
 ```
 
-## Notes for Future Development
-
-### Planned Enhancements
-- Multi-account support with profiles
-- OS keyring integration for secure storage
-- Batch operations for bulk updates
-- Export to CSV/Excel
-- Interactive mode with REPL
-- Plugin system for custom commands
-
-### Known Limitations
-- Search API limited to 300 results
-- No webhook support in CLI
-- Attachments require individual ticket fetches
-- Rate limiting requires careful request management
-
-## Questions or Issues?
-Check the documentation in the `docs/` directory:
-- `IMPLEMENTATION_PLAN.md` - Overall strategy
-- `TESTING_STRATEGY.md` - How to test without live API
-- `BUILD_DEPLOYMENT.md` - Build and distribution
-- `CREDENTIAL_MANAGEMENT.md` - Security considerations
+## Contact & Support
+- GitHub Issues: Report bugs and feature requests
+- PR Guidelines: Include tests and update documentation
+- Code Review: Focus on AOT compatibility and performance
