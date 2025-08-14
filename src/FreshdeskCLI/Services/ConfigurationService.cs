@@ -17,9 +17,18 @@ public sealed class ConfigurationService : IConfigurationService
 
     public ConfigurationService()
     {
-        var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var configDir = Path.Combine(homeDir, ".freshdesk");
-        _configPath = Path.Combine(configDir, "config.json");
+        // Allow override for testing
+        var configPath = Environment.GetEnvironmentVariable("FRESHDESK_CONFIG_PATH");
+        if (!string.IsNullOrEmpty(configPath))
+        {
+            _configPath = Path.Combine(configPath, "config.json");
+        }
+        else
+        {
+            var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            var configDir = Path.Combine(homeDir, ".freshdesk");
+            _configPath = Path.Combine(configDir, "config.json");
+        }
     }
 
     public async Task<FreshdeskConfig?> LoadConfigAsync(CancellationToken cancellationToken = default)
