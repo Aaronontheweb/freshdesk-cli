@@ -19,22 +19,22 @@ public sealed class RateLimitHandler : DelegatingHandler
         CancellationToken cancellationToken)
     {
         int retryCount = 0;
-        
+
         while (retryCount < MaxRetries)
         {
             var response = await base.SendAsync(request, cancellationToken);
-            
+
             // If we get rate limited, wait and retry
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 retryCount++;
-                
+
                 // Check for Retry-After header from Freshdesk
                 var retryAfter = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(60);
-                
+
                 Console.Error.WriteLine($"Rate limited. Waiting {retryAfter.TotalSeconds:F0} seconds before retry {retryCount}/{MaxRetries}...");
                 await Task.Delay(retryAfter, cancellationToken);
-                
+
                 // Clone the request for retry since the original may have been disposed
                 request = CloneRequest(request);
                 continue;
