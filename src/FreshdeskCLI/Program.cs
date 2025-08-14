@@ -306,16 +306,38 @@ static async Task<int> HandleTicketGet(string[] args, FreshdeskCLI.Services.Fres
 {
     if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk ticket get <ticket-id> [--format json|text]");
+        Console.WriteLine("Usage: freshdesk ticket get <ticket-id> [options]");
+        Console.WriteLine("Options:");
+        Console.WriteLine("  --format json|text    Output format");
+        Console.WriteLine("  --tree                Show conversation tree structure");
+        Console.WriteLine("  --conversations       Include full conversation bodies");
+        Console.WriteLine("  --full                Show everything (conversations + attachments)");
         return 1;
     }
 
     string format = "text";
+    bool showTree = false;
+    bool showConversations = false;
+    bool showFull = false;
+
     for (int i = 1; i < args.Length; i++)
     {
-        if ((args[i] == "--format" || args[i] == "-f") && i + 1 < args.Length)
+        switch (args[i])
         {
-            format = args[++i];
+            case "--format":
+            case "-f":
+                if (i + 1 < args.Length)
+                    format = args[++i];
+                break;
+            case "--tree":
+                showTree = true;
+                break;
+            case "--conversations":
+                showConversations = true;
+                break;
+            case "--full":
+                showFull = true;
+                break;
         }
     }
 
@@ -327,7 +349,32 @@ static async Task<int> HandleTicketGet(string[] args, FreshdeskCLI.Services.Fres
         return 1;
     }
 
-    OutputFormatter.PrintTicketDetails(ticket, format);
+    // Fetch conversations if needed
+    Conversation[]? conversations = null;
+    if (showTree || showConversations || showFull)
+    {
+        conversations = await client.GetTicketConversationsAsync(ticketId);
+        ticket.Conversations = conversations;
+    }
+
+    // Show appropriate view
+    if (format == "json")
+    {
+        OutputFormatter.PrintTicketJson(ticket);
+    }
+    else if (showTree)
+    {
+        OutputFormatter.PrintTicketTree(ticket, conversations);
+    }
+    else if (showFull || showConversations)
+    {
+        OutputFormatter.PrintTicketFull(ticket, conversations);
+    }
+    else
+    {
+        OutputFormatter.PrintTicketDetails(ticket, format);
+    }
+
     return 0;
 }
 

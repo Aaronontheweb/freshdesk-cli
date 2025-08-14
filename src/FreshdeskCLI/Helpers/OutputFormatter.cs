@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FreshdeskCLI.Models;
+using System.Linq;
 
 namespace FreshdeskCLI.Helpers;
 
@@ -94,6 +95,15 @@ public static class OutputFormatter
                         Console.WriteLine($"  - {attachment.Name} ({FormatFileSize(attachment.Size)})");
                     }
                 }
+
+                // Show conversation summary if available
+                if (ticket.Conversations?.Length > 0)
+                {
+                    int replyCount = ticket.Conversations.Count(c => !c.Private);
+                    int noteCount = ticket.Conversations.Count(c => c.Private);
+                    Console.WriteLine($"\nConversations: {replyCount} replies, {noteCount} notes");
+                    Console.WriteLine("Use --tree or --full to view conversation details");
+                }
                 break;
         }
     }
@@ -130,5 +140,101 @@ public static class OutputFormatter
         }
 
         return $"{len:0.##} {sizes[order]}";
+    }
+
+    public static void PrintTicketJson(Ticket ticket)
+    {
+        var json = JsonSerializer.Serialize(ticket, FreshdeskJsonContext.Default.Ticket);
+        Console.WriteLine(json);
+    }
+
+    public static void PrintTicketTree(Ticket ticket, Conversation[]? conversations)
+    {
+        Console.WriteLine($"Ticket #{ticket.Id}: {ticket.Subject} [{ticket.Status}]");
+        
+        // Show summary
+        int replyCount = conversations?.Count(c => !c.Private) ?? 0;
+        int noteCount = conversations?.Count(c => c.Private) ?? 0;
+        int attachmentCount = ticket.Attachments?.Length ?? 0;
+        long totalAttachmentSize = ticket.Attachments?.Sum(a => a.Size) ?? 0;
+        
+        Console.WriteLine($"Summary: {replyCount} replies, {noteCount} notes, {attachmentCount} attachments ({FormatFileSize(totalAttachmentSize)})");
+        Console.WriteLine();
+
+        if (conversations == null || conversations.Length == 0)
+        {
+            Console.WriteLine("└── No conversations");
+            return;
+        }
+
+        // Build tree structure
+        for (int i = 0; i < conversations.Length; i++)
+        {
+            var conv = conversations[i];
+            bool isLast = i == conversations.Length - 1;
+            string prefix = isLast ? "└── " : "├── ";
+            string childPrefix = isLast ? "    " : "│   ";
+            
+            string typeIndicator = conv.Private ? "[Note]" : conv.Incoming ? "[Customer]" : "[Agent]";
+            Console.WriteLine($"{prefix}{conv.CreatedAt:yyyy-MM-dd HH:mm} - {typeIndicator}");
+            
+            // Show attachments for this conversation
+            if (conv.Attachments?.Length > 0)
+            {
+                for (int j = 0; j < conv.Attachments.Length; j++)
+                {
+                    var att = conv.Attachments[j];
+                    bool isLastAtt = j == conv.Attachments.Length - 1;
+                    string attPrefix = isLastAtt ? "└── " : "├── ";
+                    Console.WriteLine($"{childPrefix}{attPrefix}{att.Name} ({FormatFileSize(att.Size)})");
+                }
+            }
+        }
+    }
+
+    public static void PrintTicketFull(Ticket ticket, Conversation[]? conversations)
+    {
+        // Print basic ticket details first
+        PrintTicketDetails(ticket, "text");
+        
+        if (conversations == null || conversations.Length == 0)
+        {
+            Console.WriteLine("\nNo conversations found.");
+            return;
+        }
+
+        Console.WriteLine("\n" + new string('=', 50));
+        Console.WriteLine("CONVERSATION THREAD");
+        Console.WriteLine(new string('=', 50));
+
+        foreach (var conv in conversations)
+        {
+            Console.WriteLine();
+            string typeLabel = conv.Private ? "INTERNAL NOTE" : conv.Incoming ? "CUSTOMER" : "AGENT";
+            Console.WriteLine($"[{typeLabel}] {conv.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+            Console.WriteLine(new string('-', 30));
+            
+            // Show plain text body
+            if (!string.IsNullOrEmpty(conv.BodyText))
+            {
+                Console.WriteLine(conv.BodyText);
+            }
+            else if (!string.IsNullOrEmpty(conv.Body))
+            {
+                // Strip HTML tags for basic display
+                var plainText = System.Text.RegularExpressions.Regex.Replace(conv.Body, "<.*?>", "");
+                Console.WriteLine(plainText);
+            }
+            
+            // Show attachments
+            if (conv.Attachments?.Length > 0)
+            {
+                Console.WriteLine($"\nAttachments ({conv.Attachments.Length}):");
+                foreach (var att in conv.Attachments)
+                {
+                    Console.WriteLine($"  - {att.Name} ({FormatFileSize(att.Size)})");
+                }
+            }
+        }
     }
 }
