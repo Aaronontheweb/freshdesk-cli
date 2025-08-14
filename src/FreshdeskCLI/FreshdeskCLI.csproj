@@ -25,7 +25,6 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="System.CommandLine" />
-    <PackageReference Include="System.Threading.RateLimiting" />
   </ItemGroup>
 
 </Project>

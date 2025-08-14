@@ -1,71 +1,72 @@
 using System.Net;
-using System.Threading.RateLimiting;
 
 namespace FreshdeskCLI.Services;
 
 /// <summary>
-/// HTTP delegating handler that implements rate limiting for Freshdesk API calls.
-/// Freshdesk API has a rate limit of 700 requests per minute for Performance plans.
+/// HTTP delegating handler that handles rate limit responses from Freshdesk API.
+/// Freshdesk API returns 429 Too Many Requests when rate limit is exceeded.
 /// </summary>
 public sealed class RateLimitHandler : DelegatingHandler
 {
-    private readonly RateLimiter _rateLimiter;
-    private readonly SemaphoreSlim _semaphore;
+    private const int MaxRetries = 3;
 
     public RateLimitHandler(HttpMessageHandler innerHandler) : base(innerHandler)
     {
-        // Freshdesk rate limit: 700 requests per minute for Performance plans
-        // We'll be conservative and use 600 to leave some headroom
-        _rateLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
-        {
-            TokenLimit = 600,
-            ReplenishmentPeriod = TimeSpan.FromMinutes(1),
-            TokensPerPeriod = 600,
-            AutoReplenishment = true,
-            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            QueueLimit = 100
-        });
-
-        _semaphore = new SemaphoreSlim(1, 1);
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
-        using var lease = await _rateLimiter.AcquireAsync(1, cancellationToken);
-
-        if (lease.IsAcquired)
+        int retryCount = 0;
+        
+        while (retryCount < MaxRetries)
         {
             var response = await base.SendAsync(request, cancellationToken);
-
-            // Check for rate limit headers from Freshdesk
+            
+            // If we get rate limited, wait and retry
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
-                // Extract retry-after header if available
-                if (response.Headers.RetryAfter != null)
-                {
-                    var retryAfter = response.Headers.RetryAfter.Delta ?? TimeSpan.FromSeconds(60);
-                    await Task.Delay(retryAfter, cancellationToken);
-
-                    // Retry the request
-                    return await SendAsync(request, cancellationToken);
-                }
+                retryCount++;
+                
+                // Check for Retry-After header from Freshdesk
+                var retryAfter = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(60);
+                
+                Console.Error.WriteLine($"Rate limited. Waiting {retryAfter.TotalSeconds:F0} seconds before retry {retryCount}/{MaxRetries}...");
+                await Task.Delay(retryAfter, cancellationToken);
+                
+                // Clone the request for retry since the original may have been disposed
+                request = CloneRequest(request);
+                continue;
             }
 
             return response;
         }
 
-        throw new InvalidOperationException("Rate limit exceeded and queue is full");
+        throw new HttpRequestException($"Rate limit exceeded after {MaxRetries} retries");
     }
 
-    protected override void Dispose(bool disposing)
+    private static HttpRequestMessage CloneRequest(HttpRequestMessage request)
     {
-        if (disposing)
+        var clone = new HttpRequestMessage(request.Method, request.RequestUri)
         {
-            _rateLimiter?.Dispose();
-            _semaphore?.Dispose();
+            Content = request.Content,
+            Version = request.Version
+        };
+
+        foreach (var header in request.Headers)
+        {
+            clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
         }
-        base.Dispose(disposing);
+
+        if (request.Content != null)
+        {
+            foreach (var header in request.Content.Headers)
+            {
+                clone.Content?.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+        }
+
+        return clone;
     }
 }
