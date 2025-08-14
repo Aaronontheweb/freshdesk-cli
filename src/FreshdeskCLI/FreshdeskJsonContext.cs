@@ -19,7 +19,7 @@ namespace FreshdeskCLI;
 [JsonSerializable(typeof(FreshdeskConfig))]
 [JsonSerializable(typeof(Dictionary<string, FreshdeskConfig>))]
 [JsonSerializable(typeof(Dictionary<string, object>))]
-internal partial class FreshdeskJsonContext : JsonSerializerContext
+public partial class FreshdeskJsonContext : JsonSerializerContext
 {
 }
 

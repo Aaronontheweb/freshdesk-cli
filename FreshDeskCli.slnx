@@ -9,4 +9,7 @@
   <Folder Name="/src/">
     <Project Path="src/FreshdeskCLI/FreshdeskCLI.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FreshdeskCLI.Tests/FreshdeskCLI.Tests.csproj" />
+  </Folder>
 </Solution>
