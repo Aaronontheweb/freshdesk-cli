@@ -16,6 +16,8 @@ namespace FreshdeskCLI;
 [JsonSerializable(typeof(Attachment))]
 [JsonSerializable(typeof(Attachment[]))]
 [JsonSerializable(typeof(ConfigFile))]
+[JsonSerializable(typeof(FreshdeskConfig))]
+[JsonSerializable(typeof(Dictionary<string, FreshdeskConfig>))]
 [JsonSerializable(typeof(Dictionary<string, object>))]
 internal partial class FreshdeskJsonContext : JsonSerializerContext
 {
