@@ -6,5 +6,4 @@
     <File Path="NuGet.Config" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="src/Akka.Console/Akka.Console.csproj" />
 </Solution>
