@@ -16,6 +16,23 @@ A fast, lightweight command-line interface for [Freshdesk](https://www.freshwork
 
 ## Installation
 
+### Quick Install (Recommended)
+
+**Linux/macOS:**
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+iwr -useb https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.ps1 | iex
+```
+
+**Install Beta Releases:**
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash -s -- --beta
+```
+
 ### From Source
 
 ```bash
