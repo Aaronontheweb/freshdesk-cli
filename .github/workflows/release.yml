@@ -46,6 +46,10 @@ jobs:
         with:
           global-json-file: "./global.json"
 
+      - name: "Run build script"
+        shell: pwsh
+        run: ./build.ps1
+
       - name: "Set version"
         shell: bash
         run: |
