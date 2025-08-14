@@ -24,10 +24,13 @@ if (args.Length == 0)
 }
 
 // Handle special flags
-if (args[0] == "--version" || args[0] == "-v")
+if (args[0] == "--version" || args[0] == "-v" || args[0] == "--about")
 {
     Console.WriteLine("Freshdesk CLI v1.0.0");
     Console.WriteLine("Built with .NET 9 AOT compilation");
+    Console.WriteLine();
+    Console.WriteLine("Created with ❤️ by Aaron Stannard");
+    Console.WriteLine("https://aaronstannard.com/");
     return 0;
 }
 
@@ -61,6 +64,7 @@ catch (Exception ex)
 static void ShowHelp()
 {
     Console.WriteLine("Freshdesk CLI - Command-line interface for Freshdesk API");
+    Console.WriteLine("Created with ❤️ by Aaron Stannard (https://aaronstannard.com/)");
     Console.WriteLine();
     Console.WriteLine("Usage: freshdesk <command> [options]");
     Console.WriteLine();
@@ -76,6 +80,7 @@ static void ShowHelp()
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine("  --version, -v      Show version information");
+    Console.WriteLine("  --about            Show about information");
     Console.WriteLine("  --help, -h         Show this help message");
     Console.WriteLine("  --read-only, -ro   Run in read-only mode (no writes/updates)");
 }
