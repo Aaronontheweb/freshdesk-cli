@@ -109,8 +109,8 @@ install_binary() {
     
     # Support both versioned and non-versioned artifact names
     # Try versioned name first (e.g., freshdesk-1.0.0-linux-x64.tar.gz)
-    local version_clean="${version#v}"  # Remove 'v' prefix if present
-    local download_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/${BINARY_NAME}-${version_clean}-${platform}.tar.gz"
+    # The version tag itself doesn't have 'v' prefix, so use it directly
+    local download_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${version}/${BINARY_NAME}-${version}-${platform}.tar.gz"
     local temp_dir
     temp_dir=$(mktemp -d)
     local temp_file="${temp_dir}/${BINARY_NAME}.tar.gz"

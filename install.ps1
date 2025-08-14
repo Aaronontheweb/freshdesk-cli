@@ -104,8 +104,8 @@ function Install-Binary {
     )
     
     # Support versioned artifact names (e.g., freshdesk-1.0.0-win-x64.zip)
-    $versionClean = $Version.TrimStart('v')
-    $downloadUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/$Version/freshdesk-$versionClean-$Platform.zip"
+    # The version tag itself doesn't have 'v' prefix, so use it directly
+    $downloadUrl = "https://github.com/$RepoOwner/$RepoName/releases/download/$Version/freshdesk-$Version-$Platform.zip"
     $tempFile = "$env:TEMP\freshdesk-$Version.zip"
     $tempDir = "$env:TEMP\freshdesk-$Version"
     

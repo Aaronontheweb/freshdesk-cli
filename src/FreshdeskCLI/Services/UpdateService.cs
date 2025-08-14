@@ -40,7 +40,7 @@ public sealed class UpdateService : IUpdateService
             if (release == null)
                 return null;
 
-            // Parse version from tag (e.g., "v1.2.3" -> "1.2.3")
+            // Parse version from tag - handle both with and without 'v' prefix
             var latestVersion = release.TagName.TrimStart('v');
 
             if (IsNewerVersion(latestVersion, _currentVersion))
