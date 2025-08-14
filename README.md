@@ -52,6 +52,18 @@ dotnet run --project src/FreshdeskCLI -- --help
 
 Download the latest release for your platform from the [Releases](https://github.com/Aaronontheweb/freshdesk-cli/releases) page.
 
+## Uninstallation
+
+**Remove Freshdesk CLI:**
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash -s -- --uninstall
+```
+
+This will:
+- Remove the `freshdesk` binary from your installation directory
+- Optionally remove the configuration directory (`~/.freshdesk`) if you choose
+- Optionally remove the installation directory if it becomes empty
+
 ## Configuration
 
 ### Initial Setup
