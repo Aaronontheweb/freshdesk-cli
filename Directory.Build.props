@@ -2,55 +2,38 @@
 <Project>
   <PropertyGroup>
     <!-- Version configuration -->
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionPrefix>1.0.1</VersionPrefix>
     <!-- Get Git commit hash at build time -->
     <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
-    <PackageReleaseNotes>**Initial Beta Release**
+    <PackageReleaseNotes>**Bug Fix Release**
 
-The first beta release of the Freshdesk CLI tool - a powerful command-line interface for managing Freshdesk tickets and support operations.
+This release fixes a critical JSON deserialization bug that prevented the --tree flag from working properly.
 
-**Features:**
-- **Configuration Management** - Set and test Freshdesk API credentials
-- **Ticket Operations** - List, view, create, update, and search tickets
-- **Conversation Support** - Reply to tickets and add internal notes
-- **Attachment Handling** - List, download (bulk support), and upload attachments
-- **Export Functionality** - Export tickets to JSON, CSV, XML, or Markdown formats
-- **Self-Update Mechanism** - Built-in update command to fetch latest releases
-- **Read-Only Mode** - Safe mode for viewing without making changes
-- **Cross-Platform** - Native binaries for Windows, Linux, and macOS (x64 and ARM64)
-- **AOT Compilation** - Fast startup and minimal memory footprint using .NET 9 AOT
+**Bug Fixes:**
+- Fixed --tree flag - Resolved JSON deserialization error when viewing ticket conversations
+- Improved API compatibility - Fixed FromEmail field type to handle Freshdesk API inconsistencies
+
+**Technical Details:**
+- Changed Conversation.FromEmail from long? to string? to handle multiple API response formats
+- The Freshdesk API returns from_email as email strings, user IDs, or null values
+- This fix ensures all conversation data can be properly parsed and displayed
 
 **Installation:**
-- Easy installation via platform-specific scripts (install.sh / install.ps1)
-- Dry-run mode for testing installation without system changes
-- Beta version support with --beta flag
-- Automatic PATH configuration
-
-**Technical Highlights:**
-- Built with .NET 9 and AOT (Ahead-of-Time) compilation
-- Reflection-free JSON serialization for optimal performance
-- Progress indicators for long-running operations
-- Comprehensive error handling and validation
-
-**Known Limitations:**
-- This is a beta release - please report any issues
-- Some advanced Freshdesk API features not yet implemented
-- Search functionality currently uses basic filtering
-
-**Getting Started:**
+Update using the self-update command:
 ```bash
-# Configure your Freshdesk credentials
-freshdesk config set --domain your-domain --api-key your-api-key
+freshdesk update
+```
 
-# Test the connection
-freshdesk config test
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
 
-# List recent tickets
-freshdesk ticket list
-
-# Get help
-freshdesk --help
-```</PackageReleaseNotes>
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64 (manual download - see Issue #25)</PackageReleaseNotes>
   </PropertyGroup>
   <!-- Set informational version with git commit if available -->
   <Target Name="SetInformationalVersion" BeforeTargets="GetAssemblyVersion">
