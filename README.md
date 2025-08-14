@@ -126,6 +126,32 @@ freshdesk ticket search "login issue"
 freshdesk ticket search "user@example.com"
 ```
 
+#### Reply to Tickets
+
+```bash
+# Reply with message directly
+freshdesk ticket reply 123 --message "Thank you for your inquiry. We're looking into this."
+
+# Reply from file
+freshdesk ticket reply 123 --file response.txt
+
+# Interactive reply (will prompt for message)
+freshdesk ticket reply 123
+```
+
+#### Add Internal Notes
+
+```bash
+# Add internal note directly
+freshdesk ticket note 123 --message "Customer has premium support, prioritize this."
+
+# Add note from file
+freshdesk ticket note 123 --file internal-notes.txt
+
+# Interactive note (will prompt)
+freshdesk ticket note 123
+```
+
 ### Attachment Operations
 
 #### List Attachments
@@ -195,6 +221,8 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 | `ticket create` | Create a new ticket |
 | `ticket update <id>` | Update ticket status/priority |
 | `ticket search <query>` | Search tickets |
+| `ticket reply <id>` | Reply to a ticket |
+| `ticket note <id>` | Add internal note to a ticket |
 
 ### Attachment Commands
 
