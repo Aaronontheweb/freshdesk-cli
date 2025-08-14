@@ -342,4 +342,6 @@ Built with ❤️ using:
 
 ## Author
 
-Aaron Stannard - [@Aaronontheweb](https://github.com/Aaronontheweb)
+Created with ❤️ by Aaron Stannard - [https://aaronstannard.com/](https://aaronstannard.com/)
+
+GitHub: [@Aaronontheweb](https://github.com/Aaronontheweb)
