@@ -22,7 +22,7 @@ public sealed class UpdateService : IUpdateService
     {
         _httpClient = httpClient;
         _currentVersion = currentVersion;
-        
+
         // Set User-Agent header for GitHub API
         if (!_httpClient.DefaultRequestHeaders.Contains("User-Agent"))
         {
@@ -47,7 +47,7 @@ public sealed class UpdateService : IUpdateService
             {
                 var platform = GetPlatformString();
                 var asset = FindPlatformAsset(release.Assets, platform);
-                
+
                 if (asset != null)
                 {
                     return new UpdateInfo
@@ -174,7 +174,7 @@ Remove-Item -Path $MyInvocation.MyCommand.Path -Force
 
         Console.WriteLine("Update will complete in a few seconds...");
         Console.WriteLine("Please run 'freshdesk --version' to verify the update.");
-        
+
         // Exit current process
         Environment.Exit(0);
         return true;
@@ -210,7 +210,7 @@ rm -f '$0'
 
         Console.WriteLine("Update will complete in a few seconds...");
         Console.WriteLine("Please run 'freshdesk --version' to verify the update.");
-        
+
         // Exit current process
         Environment.Exit(0);
         return true;
@@ -268,7 +268,7 @@ rm -f '$0'
                 UseShellExecute = false,
                 CreateNoWindow = true
             });
-            
+
             if (tar != null)
             {
                 await tar.WaitForExitAsync();
@@ -287,7 +287,7 @@ rm -f '$0'
         // Find the binary in the extracted files
         var binaryName = OperatingSystem.IsWindows() ? "freshdesk.exe" : "freshdesk";
         var files = Directory.GetFiles(extractPath, binaryName, SearchOption.AllDirectories);
-        
+
         return files.FirstOrDefault();
     }
 
@@ -317,7 +317,7 @@ rm -f '$0'
     private static GitHubAsset? FindPlatformAsset(GitHubAsset[] assets, string platform)
     {
         // Look for asset with platform string (handles versioned names like freshdesk-1.0.0-linux-x64.tar.gz)
-        return assets.FirstOrDefault(a => 
+        return assets.FirstOrDefault(a =>
             a.Name.Contains($"-{platform}.", StringComparison.OrdinalIgnoreCase) ||
             a.Name.Contains($"_{platform}.", StringComparison.OrdinalIgnoreCase));
     }

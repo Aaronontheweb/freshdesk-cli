@@ -1196,11 +1196,11 @@ static async Task<int> HandleUpdateCommand(string[] args)
     // Get version information from assembly
     var assembly = System.Reflection.Assembly.GetExecutingAssembly();
     var currentVersion = assembly.GetName().Version?.ToString(3) ?? "1.0.0"; // Major.Minor.Patch
-    
+
     // Parse flags
     bool checkOnly = false;
     bool force = false;
-    
+
     foreach (var arg in args)
     {
         if (arg == "--check" || arg == "-c")
@@ -1213,25 +1213,25 @@ static async Task<int> HandleUpdateCommand(string[] args)
     {
         using var httpClient = new HttpClient();
         var updateService = new UpdateService(httpClient, currentVersion);
-        
+
         Console.WriteLine("Checking for updates...");
         var update = await updateService.CheckForUpdateAsync();
-        
+
         if (update == null)
         {
             Console.WriteLine($"✓ You're running the latest version (v{currentVersion})");
             return 0;
         }
-        
+
         Console.WriteLine($"📦 New version available: v{update.Version}");
         Console.WriteLine($"   Current version: v{currentVersion}");
-        
+
         if (!string.IsNullOrEmpty(update.ReleaseNotes))
         {
             Console.WriteLine();
             Console.WriteLine("Release notes:");
             Console.WriteLine("─────────────");
-            
+
             // Truncate long release notes
             var notes = update.ReleaseNotes;
             if (notes.Length > 500)
@@ -1240,14 +1240,14 @@ static async Task<int> HandleUpdateCommand(string[] args)
             }
             Console.WriteLine(notes);
         }
-        
+
         if (checkOnly)
         {
             Console.WriteLine();
             Console.WriteLine("Run 'freshdesk update' to install the latest version");
             return 0;
         }
-        
+
         if (!force)
         {
             Console.WriteLine();
@@ -1259,10 +1259,10 @@ static async Task<int> HandleUpdateCommand(string[] args)
                 return 0;
             }
         }
-        
+
         Console.WriteLine();
         var success = await updateService.PerformUpdateAsync(update);
-        
+
         if (success)
         {
             // This line won't be reached as the process exits during update
