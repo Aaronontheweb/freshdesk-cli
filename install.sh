@@ -76,11 +76,9 @@ get_latest_version() {
     if [ "$include_prerelease" = true ]; then
         # Get all releases and find the latest (including pre-releases)
         api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases"
-        info "Fetching latest release information (including pre-releases)..."
     else
         # Get only the latest stable release
         api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
-        info "Fetching latest stable release information..."
     fi
     
     local response
@@ -236,6 +234,11 @@ main() {
     info "Detected platform: ${platform}"
     
     # Get latest version
+    if [ "$include_beta" = true ]; then
+        info "Fetching latest release information (including pre-releases)..."
+    else
+        info "Fetching latest stable release information..."
+    fi
     local version
     version=$(get_latest_version "$include_beta")
     info "Latest version: ${version}"
