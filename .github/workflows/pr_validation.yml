@@ -79,31 +79,11 @@ jobs:
         run: dotnet restore
 
       - name: "AOT Publish"
-        run: |
-          dotnet publish src/FreshdeskCLI \
-            -c Release \
-            -r ${{ matrix.runtime }} \
-            --self-contained \
-            -o ./publish/${{ matrix.runtime }} \
-            /p:TrimmerSingleWarn=false \
-            /p:PublishTrimmed=true
+        run: dotnet publish src/FreshdeskCLI -c Release -r ${{ matrix.runtime }} --self-contained -o ./publish/${{ matrix.runtime }} /p:TrimmerSingleWarn=false /p:PublishTrimmed=true
 
       - name: "Check AOT warnings"
         if: matrix.os == 'ubuntu-latest' && matrix.runtime == 'linux-x64'
-        run: |
-          dotnet publish src/FreshdeskCLI \
-            -c Release \
-            -r linux-x64 \
-            --self-contained \
-            /p:TrimmerSingleWarn=false \
-            /p:PublishTrimmed=true \
-            /p:TreatWarningsAsErrors=true \
-            /warnAsError:IL2026 \
-            /warnAsError:IL2057 \
-            /warnAsError:IL2067 \
-            /warnAsError:IL2075 \
-            /warnAsError:IL2096 \
-            /warnAsError:IL3050
+        run: dotnet publish src/FreshdeskCLI -c Release -r linux-x64 --self-contained /p:TrimmerSingleWarn=false /p:PublishTrimmed=true /p:TreatWarningsAsErrors=true /warnAsError:IL2026 /warnAsError:IL2057 /warnAsError:IL2067 /warnAsError:IL2075 /warnAsError:IL2096 /warnAsError:IL3050
 
       - name: "Test AOT binary"
         shell: bash
@@ -158,9 +138,7 @@ jobs:
           global-json-file: "./global.json"
 
       - name: "Check formatting"
-        run: |
-          dotnet format --verify-no-changes --verbosity diagnostic
+        run: dotnet format --verify-no-changes --verbosity diagnostic
 
       - name: "Run code analysis"
-        run: |
-          dotnet build -c Release /p:EnableNETAnalyzers=true /p:AnalysisMode=AllEnabledByDefault
+        run: dotnet build -c Release
