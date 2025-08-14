@@ -77,6 +77,8 @@ static void ShowHelp()
     Console.WriteLine("  ticket create     Create a new ticket");
     Console.WriteLine("  ticket update     Update ticket status/priority");
     Console.WriteLine("  ticket search     Search tickets");
+    Console.WriteLine("  ticket reply      Reply to a ticket");
+    Console.WriteLine("  ticket note       Add internal note to a ticket");
     Console.WriteLine("  attachment list    List attachments for a ticket");
     Console.WriteLine("  attachment download Download an attachment");
     Console.WriteLine("  attachment upload  Upload an attachment to a ticket");
@@ -238,6 +240,8 @@ static async Task<int> HandleTicketCommand(string[] args, bool isReadOnly = fals
         Console.WriteLine("  create    Create a new ticket");
         Console.WriteLine("  update    Update ticket status/priority");
         Console.WriteLine("  search    Search tickets");
+        Console.WriteLine("  reply     Reply to a ticket");
+        Console.WriteLine("  note      Add internal note to a ticket");
         return 1;
     }
 
@@ -259,6 +263,8 @@ static async Task<int> HandleTicketCommand(string[] args, bool isReadOnly = fals
         "create" => isReadOnly ? ShowReadOnlyError("ticket create") : await HandleTicketCreate(args[1..], client),
         "update" => isReadOnly ? ShowReadOnlyError("ticket update") : await HandleTicketUpdate(args[1..], client),
         "search" => await HandleTicketSearch(args[1..], client),
+        "reply" => isReadOnly ? ShowReadOnlyError("ticket reply") : await HandleTicketReply(args[1..], client),
+        "note" => isReadOnly ? ShowReadOnlyError("ticket note") : await HandleTicketNote(args[1..], client),
         _ => ShowUnknownCommand($"ticket {args[0]}")
     };
 }
@@ -556,6 +562,160 @@ static async Task<int> HandleTicketSearch(string[] args, FreshdeskCLI.Services.F
 
     Console.WriteLine($"\nFound {filtered.Length} matching tickets");
     return 0;
+}
+
+static async Task<int> HandleTicketReply(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
+    {
+        Console.WriteLine("Usage: freshdesk ticket reply <ticket-id> [options]");
+        Console.WriteLine("Options:");
+        Console.WriteLine("  --message, -m <text>   Reply message (or will prompt)");
+        Console.WriteLine("  --file, -f <path>      Read message from file");
+        return 1;
+    }
+
+    string? message = null;
+    string? filePath = null;
+
+    for (int i = 1; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--message":
+            case "-m":
+                if (i + 1 < args.Length)
+                    message = args[++i];
+                break;
+            case "--file":
+            case "-f":
+                if (i + 1 < args.Length)
+                    filePath = args[++i];
+                break;
+        }
+    }
+
+    // Get message from file if specified
+    if (!string.IsNullOrEmpty(filePath))
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"File not found: {filePath}");
+            return 1;
+        }
+        message = await File.ReadAllTextAsync(filePath);
+    }
+
+    // If no message provided, prompt for it
+    if (string.IsNullOrEmpty(message))
+    {
+        Console.WriteLine("Enter your reply (press Ctrl+D or type 'EOF' on a new line when done):");
+        var lines = new List<string>();
+        string? line;
+        while ((line = Console.ReadLine()) != null && line != "EOF")
+        {
+            lines.Add(line);
+        }
+        message = string.Join("\n", lines);
+    }
+
+    if (string.IsNullOrEmpty(message))
+    {
+        Console.WriteLine("No message provided.");
+        return 1;
+    }
+
+    try
+    {
+        Console.WriteLine($"Sending reply to ticket #{ticketId}...");
+        var conversation = await client.ReplyToTicketAsync(ticketId, message, isPrivate: false);
+        Console.WriteLine($"✓ Reply sent successfully!");
+        Console.WriteLine($"  Conversation ID: {conversation.Id}");
+        Console.WriteLine($"  Created: {conversation.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Failed to send reply: {ex.Message}");
+        return 1;
+    }
+}
+
+static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
+    {
+        Console.WriteLine("Usage: freshdesk ticket note <ticket-id> [options]");
+        Console.WriteLine("Options:");
+        Console.WriteLine("  --message, -m <text>   Note message (or will prompt)");
+        Console.WriteLine("  --file, -f <path>      Read message from file");
+        return 1;
+    }
+
+    string? message = null;
+    string? filePath = null;
+
+    for (int i = 1; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--message":
+            case "-m":
+                if (i + 1 < args.Length)
+                    message = args[++i];
+                break;
+            case "--file":
+            case "-f":
+                if (i + 1 < args.Length)
+                    filePath = args[++i];
+                break;
+        }
+    }
+
+    // Get message from file if specified
+    if (!string.IsNullOrEmpty(filePath))
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"File not found: {filePath}");
+            return 1;
+        }
+        message = await File.ReadAllTextAsync(filePath);
+    }
+
+    // If no message provided, prompt for it
+    if (string.IsNullOrEmpty(message))
+    {
+        Console.WriteLine("Enter your internal note (press Ctrl+D or type 'EOF' on a new line when done):");
+        var lines = new List<string>();
+        string? line;
+        while ((line = Console.ReadLine()) != null && line != "EOF")
+        {
+            lines.Add(line);
+        }
+        message = string.Join("\n", lines);
+    }
+
+    if (string.IsNullOrEmpty(message))
+    {
+        Console.WriteLine("No message provided.");
+        return 1;
+    }
+
+    try
+    {
+        Console.WriteLine($"Adding internal note to ticket #{ticketId}...");
+        var conversation = await client.ReplyToTicketAsync(ticketId, message, isPrivate: true);
+        Console.WriteLine($"✓ Internal note added successfully!");
+        Console.WriteLine($"  Note ID: {conversation.Id}");
+        Console.WriteLine($"  Created: {conversation.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+        return 0;
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Failed to add note: {ex.Message}");
+        return 1;
+    }
 }
 
 static void TestAotCompatibility()
