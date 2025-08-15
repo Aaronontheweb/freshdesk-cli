@@ -477,14 +477,14 @@ public class EndToEndTests : IDisposable
 
         // Act
         var tickets = await client.GetTicketsAsync();
-        
+
         // Apply unresolved filter (same logic as in Program.cs)
         var unresolvedTickets = tickets.Where(t => t.Status != TicketStatus.Resolved && t.Status != TicketStatus.Closed).ToArray();
 
         // Assert
         Assert.NotNull(tickets);
         Assert.Equal(5, tickets.Length); // All tickets returned from API
-        
+
         Assert.Equal(3, unresolvedTickets.Length); // Only unresolved tickets
         Assert.Contains(unresolvedTickets, t => t.Status == TicketStatus.Open);
         Assert.Contains(unresolvedTickets, t => t.Status == TicketStatus.Pending);
