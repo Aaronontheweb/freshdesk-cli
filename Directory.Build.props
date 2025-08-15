@@ -2,23 +2,33 @@
 <Project>
   <PropertyGroup>
     <!-- Version configuration -->
-    <VersionPrefix>1.0.2</VersionPrefix>
+    <VersionPrefix>1.1.0</VersionPrefix>
     <!-- Get Git commit hash at build time -->
     <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
-    <PackageReleaseNotes>**Bug Fix and Enhancement Release**
+    <PackageReleaseNotes>**Feature Release**
 
-This release includes important bug fixes and adds powerful filtering capabilities to ticket operations.
+This release brings significant new features and improvements to the Freshdesk CLI.
 
 **New Features:**
-- **Advanced Filtering** - Added comprehensive filtering options for ticket operations (#36)
-  - Filter by status, priority, agent, group, and more
-  - Support for date range filtering with `--created-since` and `--updated-since`
-  - Combine multiple filters for precise ticket searches
+- **Tab Completion Support** - Added shell completion for bash, zsh, and PowerShell (#45)
+  - Auto-complete commands and options
+  - Easy installation with `freshdesk completion` command
+  - Supports all major shells
+  
+- **Version Management** - Added version display and update checking (#44)
+  - Check current version with `--version` flag
+  - Automatic update notifications
+  - Self-update capability
+  
+- **Comprehensive Help System** - Improved help for all CLI commands
+  - Detailed command descriptions
+  - Examples for common use cases
+  - Better error messages
 
-**Bug Fixes:**
-- **Fixed Attachment Downloads** - Now properly includes conversation attachments when downloading (#37)
-- **Fixed Windows AOT Build** - Resolved release workflow failure for Windows builds (#34)
-- **Fixed Flaky Test** - Stabilized the ConfigureCommand_SavesConfiguration test (#35)
+**Improvements:**
+- Enhanced filter parsing and ticket list display
+- Better integration test coverage
+- Improved code formatting and consistency
 
 **Installation:**
 Update using the self-update command:
@@ -35,7 +45,7 @@ curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/inst
 - Linux x64
 - macOS x64 (Intel)
 - macOS ARM64 (Apple Silicon)
-- Windows x64 (fixed in this release)</PackageReleaseNotes>
+- Windows x64</PackageReleaseNotes>
   </PropertyGroup>
   <!-- Set informational version with git commit if available -->
   <Target Name="SetInformationalVersion" BeforeTargets="GetAssemblyVersion">
