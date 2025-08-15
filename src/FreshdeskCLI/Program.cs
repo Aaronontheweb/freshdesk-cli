@@ -47,6 +47,9 @@ if (args[0] == "--version" || args[0] == "-v")
 {
     Console.WriteLine($"Freshdesk CLI v{informationalVersion}");
     Console.WriteLine("Built with .NET 9 AOT compilation");
+    Console.WriteLine();
+    Console.WriteLine("Created with ❤️ by Aaron Stannard");
+    Console.WriteLine("https://aaronstannard.com/");
 
     // Wait for update check to complete and display if available
     var updateInfo = await updateCheckTask;
