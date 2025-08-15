@@ -69,12 +69,14 @@ public static class CommandHelp
                 ["--limit, -l <number>"] = "Items per page (default: 30)",
                 ["--status, -s <status>"] = "Filter by status (open, pending, resolved, closed)",
                 ["--email, --customer, -e <email>"] = "Filter by customer email",
+                ["--unresolved"] = "Show only unresolved tickets (excludes resolved and closed)",
                 ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
             },
             Examples = new[]
             {
                 "freshdesk ticket list --status open",
                 "freshdesk ticket list --email customer@example.com",
+                "freshdesk ticket list --unresolved",
                 "freshdesk ticket list --page 2 --limit 50 --format json"
             }
         },
