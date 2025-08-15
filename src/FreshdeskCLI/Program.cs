@@ -416,11 +416,32 @@ static async Task<int> HandleTicketList(string[] args, FreshdeskCLI.Services.Fre
         }
     }
 
-    var tickets = await client.GetTicketsAsync(page, limit, statusFilter, emailFilter);
+    Ticket[] tickets;
     
     if (unresolvedOnly)
     {
-        tickets = tickets.Where(t => t.Status != TicketStatus.Resolved && t.Status != TicketStatus.Closed).ToArray();
+        // When --unresolved is used, search for each unresolved status separately
+        // to ensure we get all tickets regardless of API pagination limits
+        var allUnresolvedTickets = new List<Ticket>();
+        var unresolvedStatuses = new[] { TicketStatus.Open, TicketStatus.Pending, TicketStatus.WaitingOnCustomer, TicketStatus.WaitingOnThirdParty };
+        
+        foreach (var status in unresolvedStatuses)
+        {
+            // Use a reasonable limit per status to avoid API limits
+            var statusTickets = await client.GetTicketsAsync(1, Math.Min(limit, 100), status, emailFilter);
+            allUnresolvedTickets.AddRange(statusTickets);
+        }
+        
+        tickets = allUnresolvedTickets
+            .GroupBy(t => t.Id) // Deduplicate in case of overlaps
+            .Select(g => g.First())
+            .OrderByDescending(t => t.CreatedAt) // Sort by creation date, newest first
+            .Take(limit) // Apply the original limit to the combined results
+            .ToArray();
+    }
+    else
+    {
+        tickets = await client.GetTicketsAsync(page, limit, statusFilter, emailFilter);
     }
     
     OutputFormatter.PrintTickets(tickets, format);
