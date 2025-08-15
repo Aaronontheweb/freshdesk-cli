@@ -29,7 +29,7 @@ public class EnumParsingTests
     public void TryParseTicketStatus_ValidInputs_ReturnsCorrectStatus(string input, TicketStatus expected)
     {
         var result = EnumParser.TryParseTicketStatus(input, out var status);
-        
+
         Assert.True(result);
         Assert.Equal(expected, status);
     }
@@ -43,7 +43,7 @@ public class EnumParsingTests
     public void TryParseTicketStatus_InvalidInputs_ReturnsFalse(string input)
     {
         var result = EnumParser.TryParseTicketStatus(input, out var status);
-        
+
         Assert.False(result);
     }
 
@@ -62,7 +62,7 @@ public class EnumParsingTests
     public void TryParseTicketPriority_ValidInputs_ReturnsCorrectPriority(string input, TicketPriority expected)
     {
         var result = EnumParser.TryParseTicketPriority(input, out var priority);
-        
+
         Assert.True(result);
         Assert.Equal(expected, priority);
     }
@@ -76,7 +76,7 @@ public class EnumParsingTests
     public void TryParseTicketPriority_InvalidInputs_ReturnsFalse(string input)
     {
         var result = EnumParser.TryParseTicketPriority(input, out var priority);
-        
+
         Assert.False(result);
     }
 }

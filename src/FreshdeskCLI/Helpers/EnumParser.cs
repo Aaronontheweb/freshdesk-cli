@@ -7,12 +7,12 @@ public static class EnumParser
     public static bool TryParseTicketStatus(string input, out TicketStatus status)
     {
         status = TicketStatus.None;
-        
+
         if (string.IsNullOrWhiteSpace(input))
             return false;
-        
+
         var normalizedInput = input.Replace(" ", "").Replace("_", "").Replace("-", "").ToLowerInvariant();
-        
+
         var statusMappings = new Dictionary<string, TicketStatus>(StringComparer.OrdinalIgnoreCase)
         {
             { "open", TicketStatus.Open },
@@ -32,13 +32,13 @@ public static class EnumParser
             { "6", TicketStatus.WaitingOnCustomer },
             { "7", TicketStatus.WaitingOnThirdParty }
         };
-        
+
         if (statusMappings.TryGetValue(normalizedInput, out status))
             return true;
-        
+
         if (Enum.TryParse<TicketStatus>(input, true, out status) && status != TicketStatus.None && Enum.IsDefined(typeof(TicketStatus), status))
             return true;
-            
+
         return false;
     }
 
@@ -50,12 +50,12 @@ public static class EnumParser
     public static bool TryParseTicketPriority(string input, out TicketPriority priority)
     {
         priority = TicketPriority.None;
-        
+
         if (string.IsNullOrWhiteSpace(input))
             return false;
-        
+
         var normalizedInput = input.ToLowerInvariant();
-        
+
         var priorityMappings = new Dictionary<string, TicketPriority>(StringComparer.OrdinalIgnoreCase)
         {
             { "low", TicketPriority.Low },
@@ -67,13 +67,13 @@ public static class EnumParser
             { "3", TicketPriority.High },
             { "4", TicketPriority.Urgent }
         };
-        
+
         if (priorityMappings.TryGetValue(normalizedInput, out priority))
             return true;
-        
+
         if (Enum.TryParse<TicketPriority>(input, true, out priority) && priority != TicketPriority.None && Enum.IsDefined(typeof(TicketPriority), priority))
             return true;
-            
+
         return false;
     }
 
