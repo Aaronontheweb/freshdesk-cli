@@ -137,11 +137,13 @@ static async Task<int> HandleConfigCommand(string[] args, bool isReadOnly = fals
 {
     if (args.Length < 1)
     {
-        Console.WriteLine("Usage: freshdesk config <subcommand>");
-        Console.WriteLine("  set     Set configuration values");
-        Console.WriteLine("  get     Get current configuration");
-        Console.WriteLine("  test    Test connection to Freshdesk API");
-        return 1;
+        return CommandHelp.ShowHelpAndReturn("config");
+    }
+
+    // Check if help is requested for the config command itself (not subcommands)
+    if (args.Length == 1 && CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("config");
     }
 
     var configService = new FreshdeskCLI.Services.ConfigurationService();
@@ -149,14 +151,19 @@ static async Task<int> HandleConfigCommand(string[] args, bool isReadOnly = fals
     return args[0].ToLowerInvariant() switch
     {
         "set" => isReadOnly ? ShowReadOnlyError("config set") : await HandleConfigSet(args[1..], configService),
-        "get" => await HandleConfigGet(configService),
-        "test" => await HandleConfigTest(configService),
+        "get" => await HandleConfigGet(args[1..], configService),
+        "test" => await HandleConfigTest(args[1..], configService),
         _ => ShowUnknownCommand($"config {args[0]}")
     };
 }
 
 static async Task<int> HandleConfigSet(string[] args, FreshdeskCLI.Services.ConfigurationService configService)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("config", "set");
+    }
+
     string? domain = null;
     string? apiKey = null;
 
@@ -179,10 +186,8 @@ static async Task<int> HandleConfigSet(string[] args, FreshdeskCLI.Services.Conf
 
     if (string.IsNullOrEmpty(domain) && string.IsNullOrEmpty(apiKey))
     {
-        Console.WriteLine("Usage: freshdesk config set [options]");
-        Console.WriteLine("Options:");
-        Console.WriteLine("  --domain, -d <domain>    Freshdesk domain");
-        Console.WriteLine("  --api-key, -k <key>      Freshdesk API key");
+        Console.WriteLine("Error: No configuration options specified.");
+        Console.WriteLine("Run 'freshdesk config set --help' for usage information.");
         return 1;
     }
 
@@ -199,8 +204,13 @@ static async Task<int> HandleConfigSet(string[] args, FreshdeskCLI.Services.Conf
     return 0;
 }
 
-static async Task<int> HandleConfigGet(FreshdeskCLI.Services.ConfigurationService configService)
+static async Task<int> HandleConfigGet(string[] args, FreshdeskCLI.Services.ConfigurationService configService)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("config", "get");
+    }
+
     var config = await configService.LoadConfigAsync();
 
     if (config == null)
@@ -215,8 +225,13 @@ static async Task<int> HandleConfigGet(FreshdeskCLI.Services.ConfigurationServic
     return 0;
 }
 
-static async Task<int> HandleConfigTest(FreshdeskCLI.Services.ConfigurationService configService)
+static async Task<int> HandleConfigTest(string[] args, FreshdeskCLI.Services.ConfigurationService configService)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("config", "test");
+    }
+
     var config = await configService.LoadConfigAsync();
 
     if (config == null || !config.IsValid)
@@ -246,15 +261,13 @@ static async Task<int> HandleTicketCommand(string[] args, bool isReadOnly = fals
 {
     if (args.Length < 1)
     {
-        Console.WriteLine("Usage: freshdesk ticket <subcommand>");
-        Console.WriteLine("  list      List tickets");
-        Console.WriteLine("  get       Get ticket details");
-        Console.WriteLine("  create    Create a new ticket");
-        Console.WriteLine("  update    Update ticket status/priority");
-        Console.WriteLine("  search    Search tickets");
-        Console.WriteLine("  reply     Reply to a ticket");
-        Console.WriteLine("  note      Add internal note to a ticket");
-        return 1;
+        return CommandHelp.ShowHelpAndReturn("ticket");
+    }
+
+    // Check if help is requested for the ticket command itself (not subcommands)
+    if (args.Length == 1 && CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("ticket");
     }
 
     var configService = new FreshdeskCLI.Services.ConfigurationService();
@@ -283,6 +296,11 @@ static async Task<int> HandleTicketCommand(string[] args, bool isReadOnly = fals
 
 static async Task<int> HandleTicketList(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("ticket", "list");
+    }
+
     int page = 1;
     int limit = 30;
     string format = "table";
@@ -335,14 +353,15 @@ static async Task<int> HandleTicketList(string[] args, FreshdeskCLI.Services.Fre
 
 static async Task<int> HandleTicketGet(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("ticket", "get");
+    }
+
     if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk ticket get <ticket-id> [options]");
-        Console.WriteLine("Options:");
-        Console.WriteLine("  --format json|text    Output format");
-        Console.WriteLine("  --tree                Show conversation tree structure");
-        Console.WriteLine("  --conversations       Include full conversation bodies");
-        Console.WriteLine("  --full                Show everything (conversations + attachments)");
+        Console.WriteLine("Error: Missing or invalid ticket ID.");
+        Console.WriteLine("Run 'freshdesk ticket get --help' for usage information.");
         return 1;
     }
 
@@ -411,6 +430,11 @@ static async Task<int> HandleTicketGet(string[] args, FreshdeskCLI.Services.Fres
 
 static async Task<int> HandleTicketCreate(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("ticket", "create");
+    }
+
     string? subject = null;
     string? description = null;
     string? email = null;
@@ -446,13 +470,8 @@ static async Task<int> HandleTicketCreate(string[] args, FreshdeskCLI.Services.F
 
     if (string.IsNullOrEmpty(subject) || string.IsNullOrEmpty(email))
     {
-        Console.WriteLine("Usage: freshdesk ticket create [options]");
-        Console.WriteLine("Required options:");
-        Console.WriteLine("  --subject, -s <subject>      Ticket subject");
-        Console.WriteLine("  --email, -e <email>          Requester email");
-        Console.WriteLine("Optional options:");
-        Console.WriteLine("  --description, -d <desc>     Ticket description");
-        Console.WriteLine("  --priority, -p <priority>    Priority (Low, Medium, High, Urgent)");
+        Console.WriteLine("Error: Missing required options.");
+        Console.WriteLine("Run 'freshdesk ticket create --help' for usage information.");
         return 1;
     }
 
@@ -484,12 +503,15 @@ static async Task<int> HandleTicketCreate(string[] args, FreshdeskCLI.Services.F
 
 static async Task<int> HandleTicketUpdate(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("ticket", "update");
+    }
+
     if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk ticket update <ticket-id> [options]");
-        Console.WriteLine("Options:");
-        Console.WriteLine("  --status, -s <status>        New status");
-        Console.WriteLine("  --priority, -p <priority>    New priority");
+        Console.WriteLine("Error: Missing or invalid ticket ID.");
+        Console.WriteLine("Run 'freshdesk ticket update --help' for usage information.");
         return 1;
     }
 
@@ -542,6 +564,11 @@ static async Task<int> HandleTicketUpdate(string[] args, FreshdeskCLI.Services.F
 
 static async Task<int> HandleTicketSearch(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("ticket", "search");
+    }
+
     string? textQuery = null;
     TicketStatus? statusFilter = null;
     TicketPriority? priorityFilter = null;
@@ -588,17 +615,8 @@ static async Task<int> HandleTicketSearch(string[] args, FreshdeskCLI.Services.F
 
     if (string.IsNullOrEmpty(textQuery) && !statusFilter.HasValue && !priorityFilter.HasValue && string.IsNullOrEmpty(emailFilter))
     {
-        Console.WriteLine("Usage: freshdesk ticket search [query] [options]");
-        Console.WriteLine("Options:");
-        Console.WriteLine("  --query, -q <text>        Search in subject/description");
-        Console.WriteLine("  --status, -s <status>     Filter by status");
-        Console.WriteLine("  --priority, -p <priority> Filter by priority");
-        Console.WriteLine("  --email, -e <email>       Filter by customer email");
-        Console.WriteLine("  --format, -f <format>     Output format (table, json, csv)");
-        Console.WriteLine("\nExamples:");
-        Console.WriteLine("  freshdesk ticket search \"login issue\"");
-        Console.WriteLine("  freshdesk ticket search --status open --priority high");
-        Console.WriteLine("  freshdesk ticket search --email john@example.com");
+        Console.WriteLine("Error: No search criteria specified.");
+        Console.WriteLine("Run 'freshdesk ticket search --help' for usage information.");
         return 1;
     }
 
@@ -637,12 +655,15 @@ static async Task<int> HandleTicketSearch(string[] args, FreshdeskCLI.Services.F
 
 static async Task<int> HandleTicketReply(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("ticket", "reply");
+    }
+
     if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk ticket reply <ticket-id> [options]");
-        Console.WriteLine("Options:");
-        Console.WriteLine("  --message, -m <text>   Reply message (or will prompt)");
-        Console.WriteLine("  --file, -f <path>      Read message from file");
+        Console.WriteLine("Error: Missing or invalid ticket ID.");
+        Console.WriteLine("Run 'freshdesk ticket reply --help' for usage information.");
         return 1;
     }
 
@@ -714,12 +735,15 @@ static async Task<int> HandleTicketReply(string[] args, FreshdeskCLI.Services.Fr
 
 static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("ticket", "note");
+    }
+
     if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk ticket note <ticket-id> [options]");
-        Console.WriteLine("Options:");
-        Console.WriteLine("  --message, -m <text>   Note message (or will prompt)");
-        Console.WriteLine("  --file, -f <path>      Read message from file");
+        Console.WriteLine("Error: Missing or invalid ticket ID.");
+        Console.WriteLine("Run 'freshdesk ticket note --help' for usage information.");
         return 1;
     }
 
@@ -846,11 +870,13 @@ static async Task<int> HandleAttachmentCommand(string[] args, bool isReadOnly = 
 {
     if (args.Length < 1)
     {
-        Console.WriteLine("Usage: freshdesk attachment <subcommand>");
-        Console.WriteLine("  list <ticket-id>     List attachments for a ticket");
-        Console.WriteLine("  download             Download an attachment");
-        Console.WriteLine("  upload               Upload an attachment to a ticket");
-        return 1;
+        return CommandHelp.ShowHelpAndReturn("attachment");
+    }
+
+    // Check if help is requested for the attachment command itself (not subcommands)
+    if (args.Length == 1 && CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("attachment");
     }
 
     var configService = new FreshdeskCLI.Services.ConfigurationService();
@@ -875,9 +901,15 @@ static async Task<int> HandleAttachmentCommand(string[] args, bool isReadOnly = 
 
 static async Task<int> HandleAttachmentList(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("attachment", "list");
+    }
+
     if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk attachment list <ticket-id> [--include-conversations]");
+        Console.WriteLine("Error: Missing or invalid ticket ID.");
+        Console.WriteLine("Run 'freshdesk attachment list --help' for usage information.");
         return 1;
     }
 
@@ -939,6 +971,11 @@ static async Task<int> HandleAttachmentList(string[] args, FreshdeskCLI.Services
 
 static async Task<int> HandleAttachmentDownload(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("attachment", "download");
+    }
+
     // Check if user wants to download all attachments
     if (args.Length >= 2 && args[1].Equals("all", StringComparison.OrdinalIgnoreCase))
     {
@@ -947,7 +984,8 @@ static async Task<int> HandleAttachmentDownload(string[] args, FreshdeskCLI.Serv
 
     if (args.Length < 2 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk attachment download <ticket-id> <attachment-id|all> [--output <path>]");
+        Console.WriteLine("Error: Missing required arguments.");
+        Console.WriteLine("Run 'freshdesk attachment download --help' for usage information.");
         return 1;
     }
 
@@ -1156,12 +1194,13 @@ static async Task<int> HandleExportCommand(string[] args)
 {
     if (args.Length < 1)
     {
-        Console.WriteLine("Usage: freshdesk export <tickets|ticket> [options]");
-        Console.WriteLine();
-        Console.WriteLine("Commands:");
-        Console.WriteLine("  tickets       Export multiple tickets to a file");
-        Console.WriteLine("  ticket        Export a single ticket with full details");
-        return 1;
+        return CommandHelp.ShowHelpAndReturn("export");
+    }
+
+    // Check if help is requested for the export command itself (not subcommands)
+    if (args.Length == 1 && CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("export");
     }
 
     var configService = new FreshdeskCLI.Services.ConfigurationService();
@@ -1184,6 +1223,11 @@ static async Task<int> HandleExportCommand(string[] args)
 
 static async Task<int> HandleExportTickets(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("export", "tickets");
+    }
+
     string outputPath = "tickets_export.json";
     string format = "json";
     bool includeConversations = false;
@@ -1266,14 +1310,15 @@ static async Task<int> HandleExportTickets(string[] args, FreshdeskCLI.Services.
 
 static async Task<int> HandleExportTicket(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("export", "ticket");
+    }
+
     if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk export ticket <ticket-id> [options]");
-        Console.WriteLine();
-        Console.WriteLine("Options:");
-        Console.WriteLine("  --output, -o <path>       Output file path");
-        Console.WriteLine("  --format, -f <format>     Export format (json, csv, xml, markdown)");
-        Console.WriteLine("  --include-conversations   Include conversation history");
+        Console.WriteLine("Error: Missing or invalid ticket ID.");
+        Console.WriteLine("Run 'freshdesk export ticket --help' for usage information.");
         return 1;
     }
 
@@ -1331,9 +1376,15 @@ static async Task<int> HandleExportTicket(string[] args, FreshdeskCLI.Services.F
 
 static async Task<int> HandleAttachmentUpload(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("attachment", "upload");
+    }
+
     if (args.Length < 2 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk attachment upload <ticket-id> <file-path> [--name <filename>]");
+        Console.WriteLine("Error: Missing required arguments.");
+        Console.WriteLine("Run 'freshdesk attachment upload --help' for usage information.");
         return 1;
     }
 
@@ -1377,6 +1428,11 @@ static async Task<int> HandleAttachmentUpload(string[] args, FreshdeskCLI.Servic
 
 static async Task<int> HandleUpdateCommand(string[] args)
 {
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("update");
+    }
+
     // Get version information from assembly
     var assembly = System.Reflection.Assembly.GetExecutingAssembly();
     var currentVersion = assembly.GetName().Version?.ToString(3) ?? "1.0.0"; // Major.Minor.Patch
