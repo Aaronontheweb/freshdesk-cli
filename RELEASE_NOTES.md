@@ -1,3 +1,37 @@
+#### 1.0.2 August 15th 2025 ####
+
+**Bug Fix and Enhancement Release**
+
+This release includes important bug fixes and adds powerful filtering capabilities to ticket operations.
+
+**New Features:**
+- **Advanced Filtering** - Added comprehensive filtering options for ticket operations (#36)
+  - Filter by status, priority, agent, group, and more
+  - Support for date range filtering with `--created-since` and `--updated-since`
+  - Combine multiple filters for precise ticket searches
+
+**Bug Fixes:**
+- **Fixed Attachment Downloads** - Now properly includes conversation attachments when downloading (#37)
+- **Fixed Windows AOT Build** - Resolved release workflow failure for Windows builds (#34)
+- **Fixed Flaky Test** - Stabilized the ConfigureCommand_SavesConfiguration test (#35)
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64 (fixed in this release)
+
 #### 1.0.1 August 14th 2025 ####
 
 **Bug Fix Release**
