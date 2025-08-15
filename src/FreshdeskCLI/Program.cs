@@ -137,7 +137,7 @@ static void ShowHelp(string? versionInfo = null)
     Console.WriteLine("  config set        Set configuration values");
     Console.WriteLine("  config get        Get current configuration");
     Console.WriteLine("  config test       Test connection to Freshdesk API");
-    Console.WriteLine("  ticket list       List tickets (with --status, --email filters)");
+    Console.WriteLine("  ticket list       List tickets (with --status, --email, --unresolved filters)");
     Console.WriteLine("  ticket get        Get ticket details");
     Console.WriteLine("  ticket create     Create a new ticket");
     Console.WriteLine("  ticket update     Update ticket status/priority");
@@ -366,6 +366,7 @@ static async Task<int> HandleTicketList(string[] args, FreshdeskCLI.Services.Fre
     string format = "table";
     TicketStatus? statusFilter = null;
     string? emailFilter = null;
+    bool unresolvedOnly = false;
 
     for (int i = 0; i < args.Length; i++)
     {
@@ -409,10 +410,40 @@ static async Task<int> HandleTicketList(string[] args, FreshdeskCLI.Services.Fre
                 if (i + 1 < args.Length)
                     emailFilter = args[++i];
                 break;
+            case "--unresolved":
+                unresolvedOnly = true;
+                break;
         }
     }
 
-    var tickets = await client.GetTicketsAsync(page, limit, statusFilter, emailFilter);
+    Ticket[] tickets;
+
+    if (unresolvedOnly)
+    {
+        // When --unresolved is used, search for each unresolved status separately
+        // to ensure we get all tickets regardless of API pagination limits
+        var allUnresolvedTickets = new List<Ticket>();
+        var unresolvedStatuses = new[] { TicketStatus.Open, TicketStatus.Pending, TicketStatus.WaitingOnCustomer, TicketStatus.WaitingOnThirdParty };
+
+        foreach (var status in unresolvedStatuses)
+        {
+            // Use a reasonable limit per status to avoid API limits
+            var statusTickets = await client.GetTicketsAsync(1, Math.Min(limit, 100), status, emailFilter);
+            allUnresolvedTickets.AddRange(statusTickets);
+        }
+
+        tickets = allUnresolvedTickets
+            .GroupBy(t => t.Id) // Deduplicate in case of overlaps
+            .Select(g => g.First())
+            .OrderByDescending(t => t.CreatedAt) // Sort by creation date, newest first
+            .Take(limit) // Apply the original limit to the combined results
+            .ToArray();
+    }
+    else
+    {
+        tickets = await client.GetTicketsAsync(page, limit, statusFilter, emailFilter);
+    }
+
     OutputFormatter.PrintTickets(tickets, format);
 
     if (format.Equals("table", StringComparison.OrdinalIgnoreCase))
