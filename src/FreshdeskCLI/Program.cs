@@ -471,6 +471,16 @@ static async Task<int> HandleTicketGet(string[] args, FreshdeskCLI.Services.Fres
         return 1;
     }
 
+    // Fetch requester email
+    if (ticket.RequesterId.HasValue)
+    {
+        var contact = await client.GetContactAsync(ticket.RequesterId.Value);
+        if (contact != null)
+        {
+            ticket.Email = contact.Email;
+        }
+    }
+
     // Fetch conversations if needed
     Conversation[]? conversations = null;
     if (showTree || showConversations || showFull)
