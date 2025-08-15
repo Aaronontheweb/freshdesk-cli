@@ -31,13 +31,14 @@ public static class OutputFormatter
             return;
         }
 
-        Console.WriteLine($"{"ID",-10} {"Subject",-40} {"Status",-15} {"Priority",-10} {"Created",-20}");
-        Console.WriteLine(new string('-', 95));
+        Console.WriteLine($"{"ID",-10} {"Subject",-30} {"Customer",-25} {"Status",-15} {"Priority",-10} {"Created",-20}");
+        Console.WriteLine(new string('-', 110));
 
         foreach (var ticket in tickets)
         {
-            var subject = TruncateString(ticket.Subject ?? "", 40);
-            Console.WriteLine($"{ticket.Id,-10} {subject,-40} {ticket.Status,-15} {ticket.Priority,-10} {ticket.CreatedAt:yyyy-MM-dd HH:mm}");
+            var subject = TruncateString(ticket.Subject ?? "", 30);
+            var email = TruncateString(ticket.Email ?? "", 25);
+            Console.WriteLine($"{ticket.Id,-10} {subject,-30} {email,-25} {ticket.Status,-15} {ticket.Priority,-10} {ticket.CreatedAt:yyyy-MM-dd HH:mm}");
         }
 
         Console.WriteLine($"\nTotal: {tickets.Length} tickets");
