@@ -2,21 +2,23 @@
 <Project>
   <PropertyGroup>
     <!-- Version configuration -->
-    <VersionPrefix>1.0.1</VersionPrefix>
+    <VersionPrefix>1.0.2</VersionPrefix>
     <!-- Get Git commit hash at build time -->
     <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
-    <PackageReleaseNotes>**Bug Fix Release**
+    <PackageReleaseNotes>**Bug Fix and Enhancement Release**
 
-This release fixes a critical JSON deserialization bug that prevented the --tree flag from working properly.
+This release includes important bug fixes and adds powerful filtering capabilities to ticket operations.
+
+**New Features:**
+- **Advanced Filtering** - Added comprehensive filtering options for ticket operations (#36)
+  - Filter by status, priority, agent, group, and more
+  - Support for date range filtering with `--created-since` and `--updated-since`
+  - Combine multiple filters for precise ticket searches
 
 **Bug Fixes:**
-- Fixed --tree flag - Resolved JSON deserialization error when viewing ticket conversations
-- Improved API compatibility - Fixed FromEmail field type to handle Freshdesk API inconsistencies
-
-**Technical Details:**
-- Changed Conversation.FromEmail from long? to string? to handle multiple API response formats
-- The Freshdesk API returns from_email as email strings, user IDs, or null values
-- This fix ensures all conversation data can be properly parsed and displayed
+- **Fixed Attachment Downloads** - Now properly includes conversation attachments when downloading (#37)
+- **Fixed Windows AOT Build** - Resolved release workflow failure for Windows builds (#34)
+- **Fixed Flaky Test** - Stabilized the ConfigureCommand_SavesConfiguration test (#35)
 
 **Installation:**
 Update using the self-update command:
@@ -33,7 +35,7 @@ curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/inst
 - Linux x64
 - macOS x64 (Intel)
 - macOS ARM64 (Apple Silicon)
-- Windows x64 (manual download - see Issue #25)</PackageReleaseNotes>
+- Windows x64 (fixed in this release)</PackageReleaseNotes>
   </PropertyGroup>
   <!-- Set informational version with git commit if available -->
   <Target Name="SetInformationalVersion" BeforeTargets="GetAssemblyVersion">
