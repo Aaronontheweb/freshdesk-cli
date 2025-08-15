@@ -9,6 +9,11 @@ using static FreshdeskCLI.Helpers.EnumParser;
 // For now, use a simpler approach without System.CommandLine's complex features
 // System.CommandLine is AOT-compatible but the beta API is still evolving
 
+// Get version information from assembly
+var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+var version = assembly.GetName().Version?.ToString() ?? "1.0.0";
+var informationalVersion = assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? version;
+
 // Check for read-only mode flag
 bool isReadOnly = false;
 var argsList = args.ToList();
@@ -20,25 +25,59 @@ if (argsList.Contains("--read-only") || argsList.Contains("-ro"))
     args = argsList.ToArray();
 }
 
+// Check for updates asynchronously (non-blocking)
+var updateCheckTask = CheckForUpdateInBackground(version);
+
 if (args.Length == 0)
 {
-    ShowHelp();
+    ShowHelp(informationalVersion);
+    // Wait for update check to complete and display if available
+    var updateInfo = await updateCheckTask;
+    if (updateInfo != null)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"📦 Update available: v{updateInfo.Version}");
+        Console.WriteLine($"   Run 'freshdesk update' to install the latest version");
+    }
     return 0;
 }
 
-// Get version information from assembly
-var assembly = System.Reflection.Assembly.GetExecutingAssembly();
-var version = assembly.GetName().Version?.ToString() ?? "1.0.0";
-var informationalVersion = assembly.GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? version;
-
 // Handle special flags
-if (args[0] == "--version" || args[0] == "-v" || args[0] == "--about")
+if (args[0] == "--version" || args[0] == "-v")
 {
     Console.WriteLine($"Freshdesk CLI v{informationalVersion}");
     Console.WriteLine("Built with .NET 9 AOT compilation");
     Console.WriteLine();
     Console.WriteLine("Created with ❤️ by Aaron Stannard");
     Console.WriteLine("https://aaronstannard.com/");
+
+    // Wait for update check to complete and display if available
+    var updateInfo = await updateCheckTask;
+    if (updateInfo != null)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"📦 Update available: v{updateInfo.Version}");
+        Console.WriteLine($"   Run 'freshdesk update' to install the latest version");
+    }
+    return 0;
+}
+
+if (args[0] == "--about")
+{
+    Console.WriteLine($"Freshdesk CLI v{informationalVersion}");
+    Console.WriteLine("Built with .NET 9 AOT compilation");
+    Console.WriteLine();
+    Console.WriteLine("Created with ❤️ by Aaron Stannard");
+    Console.WriteLine("https://aaronstannard.com/");
+
+    // Wait for update check to complete and display if available
+    var updateInfo = await updateCheckTask;
+    if (updateInfo != null)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"📦 Update available: v{updateInfo.Version}");
+        Console.WriteLine($"   Run 'freshdesk update' to install the latest version");
+    }
     return 0;
 }
 
@@ -50,7 +89,16 @@ if (args[0] == "--test-aot")
 
 if (args[0] == "--help" || args[0] == "-h")
 {
-    ShowHelp();
+    ShowHelp(informationalVersion);
+
+    // Wait for update check to complete and display if available
+    var updateInfo = await updateCheckTask;
+    if (updateInfo != null)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"📦 Update available: v{updateInfo.Version}");
+        Console.WriteLine($"   Run 'freshdesk update' to install the latest version");
+    }
     return 0;
 }
 
@@ -69,9 +117,17 @@ catch (Exception ex)
     return 1;
 }
 
-static void ShowHelp()
+static void ShowHelp(string? versionInfo = null)
 {
-    Console.WriteLine("Freshdesk CLI - Command-line interface for Freshdesk API");
+    if (!string.IsNullOrEmpty(versionInfo))
+    {
+        Console.WriteLine($"Freshdesk CLI v{versionInfo}");
+    }
+    else
+    {
+        Console.WriteLine("Freshdesk CLI");
+    }
+    Console.WriteLine("Command-line interface for Freshdesk API");
     Console.WriteLine("Created with ❤️ by Aaron Stannard (https://aaronstannard.com/)");
     Console.WriteLine();
     Console.WriteLine("Usage: freshdesk <command> [options]");
@@ -1593,5 +1649,21 @@ static async Task<int> HandleUpdateCommand(string[] args)
     {
         Console.Error.WriteLine($"Update failed: {ex.Message}");
         return 1;
+    }
+}
+
+static async Task<UpdateInfo?> CheckForUpdateInBackground(string currentVersion)
+{
+    try
+    {
+        using var httpClient = new HttpClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(3); // Quick timeout for background check
+        var updateService = new UpdateService(httpClient, currentVersion.Split('+')[0]); // Remove build metadata
+        return await updateService.CheckForUpdateAsync();
+    }
+    catch
+    {
+        // Silently ignore errors in background update check
+        return null;
     }
 }
