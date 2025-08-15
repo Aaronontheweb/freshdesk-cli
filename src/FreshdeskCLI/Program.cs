@@ -5,6 +5,7 @@ using FreshdeskCLI.Models;
 using FreshdeskCLI.Helpers;
 using FreshdeskCLI.Services;
 using static FreshdeskCLI.Helpers.EnumParser;
+using static FreshdeskCLI.Helpers.CompletionGenerator;
 
 // For now, use a simpler approach without System.CommandLine's complex features
 // System.CommandLine is AOT-compatible but the beta API is still evolving
@@ -149,6 +150,7 @@ static void ShowHelp(string? versionInfo = null)
     Console.WriteLine("  export tickets    Export tickets to file");
     Console.WriteLine("  export ticket     Export single ticket");
     Console.WriteLine("  update            Check for and install updates");
+    Console.WriteLine("  install-completion Install shell completion scripts");
     Console.WriteLine();
     Console.WriteLine("Options:");
     Console.WriteLine("  --version, -v      Show version information");
@@ -172,6 +174,7 @@ static async Task<int> RouteCommand(string[] args, bool isReadOnly = false)
         "attachment" => await HandleAttachmentCommand(args[1..], isReadOnly),
         "export" => await HandleExportCommand(args[1..]),
         "update" => await HandleUpdateCommand(args[1..]),
+        "install-completion" => await HandleInstallCompletionCommand(args[1..]),
         _ => ShowUnknownCommand(args[0])
     };
 }
@@ -1666,4 +1669,195 @@ static async Task<UpdateInfo?> CheckForUpdateInBackground(string currentVersion)
         // Silently ignore errors in background update check
         return null;
     }
+}
+
+static async Task<int> HandleInstallCompletionCommand(string[] args)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        Console.WriteLine("Usage: freshdesk install-completion [shell]");
+        Console.WriteLine();
+        Console.WriteLine("Install shell completion scripts for tab-completion support.");
+        Console.WriteLine();
+        Console.WriteLine("Supported shells:");
+        Console.WriteLine("  bash       - Bash shell (Linux/macOS)");
+        Console.WriteLine("  zsh        - Z shell (Linux/macOS)");
+        Console.WriteLine("  powershell - PowerShell (Windows/Linux/macOS)");
+        Console.WriteLine();
+        Console.WriteLine("Examples:");
+        Console.WriteLine("  freshdesk install-completion bash");
+        Console.WriteLine("  freshdesk install-completion zsh");
+        Console.WriteLine("  freshdesk install-completion powershell");
+        Console.WriteLine();
+        Console.WriteLine("After installation, restart your shell or source the profile:");
+        Console.WriteLine("  Bash:       source ~/.bashrc");
+        Console.WriteLine("  Zsh:        source ~/.zshrc");
+        Console.WriteLine("  PowerShell: . $PROFILE");
+        return 0;
+    }
+
+    string? shell = null;
+    if (args.Length > 0)
+    {
+        shell = args[0].ToLowerInvariant();
+    }
+    else
+    {
+        shell = DetectCurrentShell();
+        if (shell == null)
+        {
+            Console.WriteLine("Could not detect shell. Please specify: bash, zsh, or powershell");
+            return 1;
+        }
+        Console.WriteLine($"Detected shell: {shell}");
+    }
+
+    try
+    {
+        switch (shell)
+        {
+            case "bash":
+                return await InstallBashCompletion();
+            case "zsh":
+                return await InstallZshCompletion();
+            case "powershell":
+            case "pwsh":
+                return await InstallPowerShellCompletion();
+            default:
+                Console.Error.WriteLine($"Unsupported shell: {shell}");
+                Console.Error.WriteLine("Supported shells: bash, zsh, powershell");
+                return 1;
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"Failed to install completion: {ex.Message}");
+        return 1;
+    }
+}
+
+static string? DetectCurrentShell()
+{
+    var shellEnv = Environment.GetEnvironmentVariable("SHELL");
+    if (!string.IsNullOrEmpty(shellEnv))
+    {
+        if (shellEnv.Contains("bash"))
+            return "bash";
+        if (shellEnv.Contains("zsh"))
+            return "zsh";
+    }
+
+    var psModulePath = Environment.GetEnvironmentVariable("PSModulePath");
+    if (!string.IsNullOrEmpty(psModulePath))
+        return "powershell";
+
+    return null;
+}
+
+static async Task<int> InstallBashCompletion()
+{
+    var completion = CompletionGenerator.GenerateBashCompletion();
+    var homeDir = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    
+    var completionsDir = Path.Combine(homeDir, ".local", "share", "bash-completion", "completions");
+    Directory.CreateDirectory(completionsDir);
+    
+    var completionFile = Path.Combine(completionsDir, "freshdesk");
+    await File.WriteAllTextAsync(completionFile, completion);
+    
+    var bashrcFile = Path.Combine(homeDir, ".bashrc");
+    if (File.Exists(bashrcFile))
+    {
+        var bashrcContent = await File.ReadAllTextAsync(bashrcFile);
+        var sourceCommand = $"[ -f {completionFile} ] && source {completionFile}";
+        
+        if (!bashrcContent.Contains(sourceCommand))
+        {
+            await File.AppendAllTextAsync(bashrcFile, $"\n# Freshdesk CLI completion\n{sourceCommand}\n");
+        }
+    }
+    
+    Console.WriteLine($"✓ Bash completion installed to {completionFile}");
+    Console.WriteLine("  Run 'source ~/.bashrc' to enable completion in current session");
+    return 0;
+}
+
+static async Task<int> InstallZshCompletion()
+{
+    var completion = CompletionGenerator.GenerateZshCompletion();
+    var homeDir = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+    
+    var completionsDir = Path.Combine(homeDir, ".local", "share", "zsh", "site-functions");
+    Directory.CreateDirectory(completionsDir);
+    
+    var completionFile = Path.Combine(completionsDir, "_freshdesk");
+    await File.WriteAllTextAsync(completionFile, completion);
+    
+    var zshrcFile = Path.Combine(homeDir, ".zshrc");
+    if (File.Exists(zshrcFile))
+    {
+        var zshrcContent = await File.ReadAllTextAsync(zshrcFile);
+        var fpathCommand = $"fpath=({completionsDir} $fpath)";
+        
+        if (!zshrcContent.Contains(fpathCommand))
+        {
+            await File.AppendAllTextAsync(zshrcFile, $"\n# Freshdesk CLI completion\n{fpathCommand}\nautoload -Uz compinit && compinit\n");
+        }
+    }
+    
+    Console.WriteLine($"✓ Zsh completion installed to {completionFile}");
+    Console.WriteLine("  Run 'source ~/.zshrc' to enable completion in current session");
+    return 0;
+}
+
+static async Task<int> InstallPowerShellCompletion()
+{
+    var completion = CompletionGenerator.GeneratePowerShellCompletion();
+    
+    string? profilePath = null;
+    if (OperatingSystem.IsWindows())
+    {
+        var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        profilePath = Path.Combine(documentsPath, "PowerShell", "Microsoft.PowerShell_profile.ps1");
+    }
+    else
+    {
+        var homeDir = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        profilePath = Path.Combine(homeDir, ".config", "powershell", "Microsoft.PowerShell_profile.ps1");
+    }
+    
+    if (profilePath != null)
+    {
+        var profileDir = Path.GetDirectoryName(profilePath);
+        if (profileDir != null)
+            Directory.CreateDirectory(profileDir);
+        
+        var completionFile = Path.Combine(Path.GetDirectoryName(profilePath)!, "freshdesk-completion.ps1");
+        await File.WriteAllTextAsync(completionFile, completion);
+        
+        if (!File.Exists(profilePath))
+        {
+            await File.WriteAllTextAsync(profilePath, $"# Freshdesk CLI completion\n. '{completionFile}'\n");
+        }
+        else
+        {
+            var profileContent = await File.ReadAllTextAsync(profilePath);
+            var sourceCommand = $". '{completionFile}'";
+            
+            if (!profileContent.Contains("freshdesk-completion.ps1"))
+            {
+                await File.AppendAllTextAsync(profilePath, $"\n# Freshdesk CLI completion\n{sourceCommand}\n");
+            }
+        }
+        
+        Console.WriteLine($"✓ PowerShell completion installed to {completionFile}");
+        Console.WriteLine($"  Run '. $PROFILE' to enable completion in current session");
+    }
+    else
+    {
+        Console.WriteLine("Could not determine PowerShell profile path");
+        return 1;
+    }
+    
+    return 0;
 }

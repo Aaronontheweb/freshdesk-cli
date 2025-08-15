@@ -4,7 +4,7 @@ namespace FreshdeskCLI.Helpers;
 
 public static class CommandHelp
 {
-    private static readonly Dictionary<string, CommandHelpInfo> HelpRegistry = new()
+    internal static readonly Dictionary<string, CommandHelpInfo> HelpRegistry = new()
     {
         ["config"] = new CommandHelpInfo
         {

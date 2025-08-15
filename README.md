@@ -92,6 +92,51 @@ export FRESHDESK_DOMAIN=yourcompany
 
 Configuration is stored at `~/.freshdesk/config.json` with secure file permissions (user-only on Unix systems).
 
+## Tab Completion
+
+The CLI supports tab completion for bash, zsh, and PowerShell. This feature dynamically generates completion scripts based on the current command structure, ensuring completions are always up-to-date.
+
+### Installation
+
+**Auto-detect and install for current shell:**
+```bash
+freshdesk install-completion
+```
+
+**Install for specific shell:**
+```bash
+freshdesk install-completion bash       # For Bash
+freshdesk install-completion zsh        # For Zsh  
+freshdesk install-completion powershell # For PowerShell
+```
+
+### Activation
+
+After installation, activate the completion:
+
+**Bash:**
+```bash
+source ~/.bashrc
+```
+
+**Zsh:**
+```bash
+source ~/.zshrc
+```
+
+**PowerShell:**
+```powershell
+. $PROFILE
+```
+
+### Features
+
+- Complete commands and subcommands (e.g., `freshdesk ti<TAB>` → `freshdesk ticket`)
+- Complete options and flags (e.g., `freshdesk ticket list --st<TAB>` → `freshdesk ticket list --status`)
+- Auto-complete enum values (e.g., `--status <TAB>` shows `open`, `pending`, `resolved`, `closed`)
+- File path completion for `--output` and `--file` options
+- Automatically stays in sync with command structure updates
+
 ## Usage
 
 ### Read-Only Mode
