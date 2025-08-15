@@ -153,17 +153,22 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
     {
         ArgumentException.ThrowIfNullOrEmpty(body);
 
-        // Create a dictionary for the reply since we don't have a specific model
-        var reply = new Dictionary<string, object>
+        var endpoint = isPrivate ? $"/api/v2/tickets/{ticketId}/notes" : $"/api/v2/tickets/{ticketId}/reply";
+
+        var requestBody = new Dictionary<string, object>
         {
-            ["body"] = body,
-            ["private"] = isPrivate
+            ["body"] = body
         };
 
-        var json = JsonSerializer.Serialize(reply, FreshdeskJsonContext.Default.DictionaryStringObject);
+        if (isPrivate)
+        {
+            requestBody["private"] = true;
+        }
+
+        var json = JsonSerializer.Serialize(requestBody, FreshdeskJsonContext.Default.DictionaryStringObject);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await _httpClient.PostAsync($"/api/v2/tickets/{ticketId}/reply", content, cancellationToken);
+        var response = await _httpClient.PostAsync(endpoint, content, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);

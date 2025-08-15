@@ -1,3 +1,33 @@
+#### 1.0.4 August 15th 2025 ####
+
+**Critical Bug Fix Release**
+
+This release fixes a critical bug that prevented users from replying to tickets.
+
+**Bug Fixes:**
+- **Fixed Ticket Reply 400 Bad Request Error** (#39)
+  - Corrected API endpoint usage: `/reply` for public replies, `/notes` for private notes
+  - Removed invalid `private` field from reply requests
+  - Public replies and private notes now work correctly
+  - Added comprehensive test coverage for both reply types
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.0.2 August 15th 2025 ####
 
 **Bug Fix and Enhancement Release**
