@@ -54,7 +54,7 @@ public class OutputFormatterTests : IDisposable
         Assert.Contains("Test Ticket 1", output);
         Assert.Contains("Open", output);
         Assert.Contains("High", output);
-        Assert.Contains("This is a very long ticket subject th...", output); // Truncated to 40 chars
+        Assert.Contains("This is a very long ticket ...", output); // Truncated to 30 chars
         Assert.Contains("Total: 2 tickets", output);
     }
 

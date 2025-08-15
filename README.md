@@ -112,6 +112,17 @@ freshdesk --read-only ticket get 123
 # List tickets (default format: table)
 freshdesk ticket list
 
+# Filter by status
+freshdesk ticket list --status open
+freshdesk ticket list --status pending
+
+# Filter by customer email
+freshdesk ticket list --email john@example.com
+freshdesk ticket list --customer john@example.com
+
+# Combine filters
+freshdesk ticket list --status open --email john@example.com
+
 # With pagination
 freshdesk ticket list --page 2 --limit 50
 
@@ -153,9 +164,21 @@ freshdesk ticket update 123 --status resolved --priority low
 #### Search Tickets
 
 ```bash
-# Search tickets (client-side filtering)
+# Search tickets by text query
 freshdesk ticket search "login issue"
-freshdesk ticket search "user@example.com"
+freshdesk ticket search --query "database error"
+
+# Search with filters
+freshdesk ticket search --status open --priority high
+freshdesk ticket search --email john@example.com
+freshdesk ticket search --customer john@example.com
+
+# Combine text search with filters
+freshdesk ticket search "login" --status open --priority high
+
+# Export search results
+freshdesk ticket search --status open --format json
+freshdesk ticket search --email john@example.com --format csv
 ```
 
 #### Reply to Tickets
@@ -184,26 +207,37 @@ freshdesk ticket note 123 --file internal-notes.txt
 freshdesk ticket note 123
 ```
 
-#### Export Tickets
+### Export Operations
 
 ```bash
-# Export tickets to JSON
-freshdesk ticket export --format json --output tickets.json
+# Export multiple tickets to JSON
+freshdesk export tickets --output tickets.json --format json
+
+# Export with filters
+freshdesk export tickets --status open --output open_tickets.json
+freshdesk export tickets --priority high --output high_priority.json
+freshdesk export tickets --email john@example.com --output johns_tickets.json
+
+# Combine multiple filters
+freshdesk export tickets --status open --priority high --output urgent.json
 
 # Export to CSV
-freshdesk ticket export --format csv --output tickets.csv
+freshdesk export tickets --format csv --output tickets.csv
 
 # Export to XML
-freshdesk ticket export --format xml --output tickets.xml
+freshdesk export tickets --format xml --output tickets.xml
 
 # Export with conversations included (JSON only)
-freshdesk ticket export --format json --output tickets_full.json --include-conversations
+freshdesk export tickets --format json --output tickets_full.json --include-conversations
+
+# Limit number of tickets exported
+freshdesk export tickets --limit 100 --output first_100.json
 
 # Export single ticket to Markdown
-freshdesk ticket export 123 --format markdown --output ticket_123.md
+freshdesk export ticket 123 --format markdown --output ticket_123.md
 
 # Export single ticket with conversations
-freshdesk ticket export 123 --format json --output ticket_123.json --include-conversations
+freshdesk export ticket 123 --format json --output ticket_123.json --include-conversations
 ```
 
 ### Attachment Operations

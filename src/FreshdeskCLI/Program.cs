@@ -79,7 +79,7 @@ static void ShowHelp()
     Console.WriteLine("  config set        Set configuration values");
     Console.WriteLine("  config get        Get current configuration");
     Console.WriteLine("  config test       Test connection to Freshdesk API");
-    Console.WriteLine("  ticket list       List tickets");
+    Console.WriteLine("  ticket list       List tickets (with --status, --email filters)");
     Console.WriteLine("  ticket get        Get ticket details");
     Console.WriteLine("  ticket create     Create a new ticket");
     Console.WriteLine("  ticket update     Update ticket status/priority");
@@ -286,6 +286,8 @@ static async Task<int> HandleTicketList(string[] args, FreshdeskCLI.Services.Fre
     int page = 1;
     int limit = 30;
     string format = "table";
+    TicketStatus? statusFilter = null;
+    string? emailFilter = null;
 
     for (int i = 0; i < args.Length; i++)
     {
@@ -306,10 +308,21 @@ static async Task<int> HandleTicketList(string[] args, FreshdeskCLI.Services.Fre
                 if (i + 1 < args.Length)
                     format = args[++i];
                 break;
+            case "--status":
+            case "-s":
+                if (i + 1 < args.Length && Enum.TryParse<TicketStatus>(args[++i], true, out var s))
+                    statusFilter = s;
+                break;
+            case "--email":
+            case "--customer":
+            case "-e":
+                if (i + 1 < args.Length)
+                    emailFilter = args[++i];
+                break;
         }
     }
 
-    var tickets = await client.GetTicketsAsync(page, limit);
+    var tickets = await client.GetTicketsAsync(page, limit, statusFilter, emailFilter);
     OutputFormatter.PrintTickets(tickets, format);
 
     if (format.Equals("table", StringComparison.OrdinalIgnoreCase))
@@ -529,50 +542,96 @@ static async Task<int> HandleTicketUpdate(string[] args, FreshdeskCLI.Services.F
 
 static async Task<int> HandleTicketSearch(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
 {
-    if (args.Length < 1)
+    string? textQuery = null;
+    TicketStatus? statusFilter = null;
+    TicketPriority? priorityFilter = null;
+    string? emailFilter = null;
+    string format = "table";
+
+    for (int i = 0; i < args.Length; i++)
     {
-        Console.WriteLine("Usage: freshdesk ticket search <query>");
-        Console.WriteLine("Examples:");
-        Console.WriteLine("  freshdesk ticket search \"status:open\"");
-        Console.WriteLine("  freshdesk ticket search \"priority:high\"");
-        Console.WriteLine("  freshdesk ticket search \"email:user@example.com\"");
+        switch (args[i])
+        {
+            case "--query":
+            case "-q":
+                if (i + 1 < args.Length)
+                    textQuery = args[++i];
+                break;
+            case "--status":
+            case "-s":
+                if (i + 1 < args.Length && Enum.TryParse<TicketStatus>(args[++i], true, out var s))
+                    statusFilter = s;
+                break;
+            case "--priority":
+            case "-p":
+                if (i + 1 < args.Length && Enum.TryParse<TicketPriority>(args[++i], true, out var p))
+                    priorityFilter = p;
+                break;
+            case "--email":
+            case "--customer":
+            case "-e":
+                if (i + 1 < args.Length)
+                    emailFilter = args[++i];
+                break;
+            case "--format":
+            case "-f":
+                if (i + 1 < args.Length)
+                    format = args[++i];
+                break;
+            default:
+                // If no flag, treat as text query for backward compatibility
+                if (!args[i].StartsWith("-"))
+                    textQuery = string.IsNullOrEmpty(textQuery) ? args[i] : $"{textQuery} {args[i]}";
+                break;
+        }
+    }
+
+    if (string.IsNullOrEmpty(textQuery) && !statusFilter.HasValue && !priorityFilter.HasValue && string.IsNullOrEmpty(emailFilter))
+    {
+        Console.WriteLine("Usage: freshdesk ticket search [query] [options]");
+        Console.WriteLine("Options:");
+        Console.WriteLine("  --query, -q <text>        Search in subject/description");
+        Console.WriteLine("  --status, -s <status>     Filter by status");
+        Console.WriteLine("  --priority, -p <priority> Filter by priority");
+        Console.WriteLine("  --email, -e <email>       Filter by customer email");
+        Console.WriteLine("  --format, -f <format>     Output format (table, json, csv)");
+        Console.WriteLine("\nExamples:");
+        Console.WriteLine("  freshdesk ticket search \"login issue\"");
+        Console.WriteLine("  freshdesk ticket search --status open --priority high");
+        Console.WriteLine("  freshdesk ticket search --email john@example.com");
         return 1;
     }
 
-    var query = string.Join(" ", args);
+    var tickets = await client.GetTicketsAsync(1, 100, statusFilter, emailFilter);
 
-    // For now, we'll use list with filtering on the client side
-    // In a real implementation, we'd use Freshdesk's search API
-    Console.WriteLine($"Searching for: {query}");
-
-    var tickets = await client.GetTicketsAsync(1, 100);
-
-    // Simple client-side filtering
-    var filtered = tickets.Where(t =>
-        t.Subject?.Contains(query, StringComparison.OrdinalIgnoreCase) == true ||
-        t.Description?.Contains(query, StringComparison.OrdinalIgnoreCase) == true ||
-        t.Email?.Contains(query, StringComparison.OrdinalIgnoreCase) == true
-    ).ToArray();
-
-    if (filtered.Length == 0)
+    // Apply additional filters
+    if (priorityFilter.HasValue)
     {
-        Console.WriteLine("No tickets found matching your search.");
+        tickets = tickets.Where(t => t.Priority == priorityFilter.Value).ToArray();
+    }
+
+    if (!string.IsNullOrEmpty(textQuery))
+    {
+        tickets = tickets.Where(t =>
+            t.Subject?.Contains(textQuery, StringComparison.OrdinalIgnoreCase) == true ||
+            t.Description?.Contains(textQuery, StringComparison.OrdinalIgnoreCase) == true ||
+            t.Email?.Contains(textQuery, StringComparison.OrdinalIgnoreCase) == true
+        ).ToArray();
+    }
+
+    if (tickets.Length == 0)
+    {
+        Console.WriteLine("No tickets found matching your search criteria.");
         return 0;
     }
 
-    Console.WriteLine($"{"ID",-10} {"Subject",-40} {"Status",-15} {"Priority",-10}");
-    Console.WriteLine(new string('-', 75));
+    OutputFormatter.PrintTickets(tickets, format);
 
-    foreach (var ticket in filtered)
+    if (format.Equals("table", StringComparison.OrdinalIgnoreCase))
     {
-        var subject = ticket.Subject ?? "";
-        if (subject.Length > 40)
-            subject = subject[..37] + "...";
-
-        Console.WriteLine($"{ticket.Id,-10} {subject,-40} {ticket.Status,-15} {ticket.Priority,-10}");
+        Console.WriteLine($"\nFound {tickets.Length} matching tickets");
     }
 
-    Console.WriteLine($"\nFound {filtered.Length} matching tickets");
     return 0;
 }
 
@@ -1015,6 +1074,7 @@ static async Task<int> HandleExportTickets(string[] args, FreshdeskCLI.Services.
     bool includeConversations = false;
     string? status = null;
     string? priority = null;
+    string? email = null;
     int? limit = null;
 
     for (int i = 0; i < args.Length; i++)
@@ -1038,6 +1098,10 @@ static async Task<int> HandleExportTickets(string[] args, FreshdeskCLI.Services.
             case "--priority" when i + 1 < args.Length:
                 priority = args[++i];
                 break;
+            case "--email" when i + 1 < args.Length:
+            case "--customer" when i + 1 < args.Length:
+                email = args[++i];
+                break;
             case "--limit" when i + 1 < args.Length:
                 limit = int.Parse(args[++i]);
                 break;
@@ -1060,6 +1124,11 @@ static async Task<int> HandleExportTickets(string[] args, FreshdeskCLI.Services.
         {
             if (Enum.TryParse<TicketPriority>(priority, true, out var priorityEnum))
                 tickets = tickets.Where(t => t.Priority == priorityEnum).ToArray();
+        }
+
+        if (!string.IsNullOrEmpty(email))
+        {
+            tickets = tickets.Where(t => t.Email?.Contains(email, StringComparison.OrdinalIgnoreCase) == true).ToArray();
         }
 
         if (limit.HasValue && limit.Value > 0)
