@@ -116,6 +116,12 @@ public class MockFreshdeskServer : HttpMessageHandler
         _statusCodes[$"POST:/api/v2/tickets/{ticketId}/reply"] = HttpStatusCode.Created;
     }
 
+    public void SetupAddNoteToTicket(long ticketId, Conversation note, Conversation createdNote)
+    {
+        _responses[$"POST:/api/v2/tickets/{ticketId}/notes"] = createdNote;
+        _statusCodes[$"POST:/api/v2/tickets/{ticketId}/notes"] = HttpStatusCode.Created;
+    }
+
     public void SetupAttachmentDownload(string url, byte[] content)
     {
         var uri = new Uri(url);

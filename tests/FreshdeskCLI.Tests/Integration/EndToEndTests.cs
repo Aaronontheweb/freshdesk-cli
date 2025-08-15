@@ -310,6 +310,47 @@ public class EndToEndTests : IDisposable
     }
 
     [Fact]
+    public async Task AddPrivateNote_AddsInternalNote()
+    {
+        // Arrange
+        var config = new FreshdeskConfig
+        {
+            Domain = "test",
+            ApiKey = "test-api-key-12345"
+        };
+
+        var client = new FreshdeskApiClient(config, _httpClient);
+
+        var noteConversation = new Conversation
+        {
+            Body = "This is a private internal note",
+            Private = true
+        };
+
+        var createdNote = new Conversation
+        {
+            Id = 1000,
+            Body = noteConversation.Body,
+            BodyText = "This is a private internal note",
+            Private = true,
+            Incoming = false,
+            CreatedAt = DateTimeOffset.Now
+        };
+
+        _mockServer.SetupAddNoteToTicket(123, noteConversation, createdNote);
+
+        // Act
+        var result = await client.ReplyToTicketAsync(123, "This is a private internal note", true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(1000, result.Id);
+        Assert.Equal("This is a private internal note", result.BodyText);
+        Assert.True(result.Private);
+        Assert.False(result.Incoming);
+    }
+
+    [Fact]
     public async Task DownloadAttachment_SavesFile()
     {
         // Arrange
