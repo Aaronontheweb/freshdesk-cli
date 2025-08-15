@@ -65,15 +65,27 @@ public sealed class ConfigurationService : IConfigurationService
 
     public async Task SaveConfigAsync(FreshdeskConfig config, CancellationToken cancellationToken = default)
     {
-        var configDir = Path.GetDirectoryName(_configPath)!;
+        var configDir = Path.GetDirectoryName(_configPath);
+        if (string.IsNullOrEmpty(configDir))
+        {
+            throw new InvalidOperationException($"Invalid configuration path: {_configPath}");
+        }
+
         if (!Directory.Exists(configDir))
         {
-            Directory.CreateDirectory(configDir);
-
-            // Set permissions to user-only on Unix systems
-            if (!OperatingSystem.IsWindows())
+            try
             {
-                File.SetUnixFileMode(configDir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                Directory.CreateDirectory(configDir);
+
+                // Set permissions to user-only on Unix systems
+                if (!OperatingSystem.IsWindows())
+                {
+                    File.SetUnixFileMode(configDir, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                }
+            }
+            catch (IOException ex)
+            {
+                throw new InvalidOperationException($"Failed to create configuration directory: {configDir}", ex);
             }
         }
 
