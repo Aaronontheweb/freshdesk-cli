@@ -309,7 +309,7 @@ public static class CommandHelp
     public static void ShowHelp(params string[] commandPath)
     {
         var key = string.Join(" ", commandPath);
-        
+
         if (!HelpRegistry.TryGetValue(key, out var helpInfo))
         {
             Console.WriteLine($"No help available for '{key}'");
@@ -317,7 +317,7 @@ public static class CommandHelp
         }
 
         Console.WriteLine($"Usage: {helpInfo.Usage}");
-        
+
         if (!string.IsNullOrEmpty(helpInfo.Description))
         {
             Console.WriteLine();
