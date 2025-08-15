@@ -17,7 +17,7 @@ public class EndToEndTests : IDisposable
     {
         _testConfigPath = Path.Combine(Path.GetTempPath(), $"freshdesk-test-{Guid.NewGuid()}");
         _testDownloadPath = Path.Combine(Path.GetTempPath(), $"freshdesk-downloads-{Guid.NewGuid()}");
-        
+
         // Ensure directories are created before setting environment variable
         if (!Directory.Exists(_testConfigPath))
         {
