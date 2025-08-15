@@ -18,7 +18,7 @@ public class CommandLineTests : IDisposable
 
         // Build the CLI project to get the executable path
         var projectRoot = GetProjectRoot();
-        
+
         // Use Release build in CI environment, Debug locally
         var configuration = Environment.GetEnvironmentVariable("CI") == "true" ? "Release" : "Debug";
         _cliPath = Path.Combine(projectRoot, "src", "FreshdeskCLI", "bin", configuration, "net9.0", "freshdesk");
