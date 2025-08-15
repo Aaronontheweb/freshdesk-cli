@@ -15,7 +15,6 @@ jobs:
   build-binaries:
     name: Build-${{matrix.runtime}}
     runs-on: ${{matrix.os}}
-    continue-on-error: ${{ matrix.runtime == 'win-x64' }}
     
     strategy:
       fail-fast: false
@@ -69,7 +68,8 @@ jobs:
       - name: "Restore dependencies"
         run: dotnet restore
 
-      - name: "Publish AOT binary"
+      - name: "Publish AOT binary (Unix)"
+        if: runner.os != 'Windows'
         run: |
           dotnet publish src/FreshdeskCLI \
             -c Release \
@@ -80,6 +80,21 @@ jobs:
             -p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }} \
             -p:FileVersion=${{ env.ASSEMBLY_VERSION }} \
             /p:PublishTrimmed=true \
+            /p:PublishSingleFile=true
+
+      - name: "Publish AOT binary (Windows)"
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          dotnet publish src/FreshdeskCLI `
+            -c Release `
+            -r ${{ matrix.runtime }} `
+            --self-contained `
+            -o ./publish/${{ matrix.runtime }} `
+            -p:Version=${{ env.VERSION }} `
+            -p:AssemblyVersion=${{ env.ASSEMBLY_VERSION }} `
+            -p:FileVersion=${{ env.ASSEMBLY_VERSION }} `
+            /p:PublishTrimmed=true `
             /p:PublishSingleFile=true
 
       - name: "Create archive (Linux/macOS)"
@@ -197,10 +212,9 @@ jobs:
           | Platform | Architecture | Download |
           |----------|-------------|----------|
           | Linux | x64 | [freshdesk-${{ env.VERSION }}-linux-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-linux-x64.tar.gz) |
+          | Windows | x64 | [freshdesk-${{ env.VERSION }}-win-x64.zip](https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-win-x64.zip) |
           | macOS | x64 (Intel) | [freshdesk-${{ env.VERSION }}-osx-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-osx-x64.tar.gz) |
           | macOS | ARM64 (Apple Silicon) | [freshdesk-${{ env.VERSION }}-osx-arm64.tar.gz](https://github.com/${{ github.repository }}/releases/download/${{ env.VERSION }}/freshdesk-${{ env.VERSION }}-osx-arm64.tar.gz) |
-          
-          **Note**: Windows x64 builds are temporarily unavailable due to a [known PowerShell parsing issue](https://github.com/${{ github.repository }}/issues/25). Please use the Linux builds with WSL in the meantime.
           
           ## Verify Downloads
           
