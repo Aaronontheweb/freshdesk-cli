@@ -1,3 +1,45 @@
+#### 1.1.1 August 15th 2025 ####
+
+**Bug Fix Release**
+
+This release fixes critical issues with ticket filtering and display functionality.
+
+**Bug Fixes:**
+- **Fixed Ticket Status Filtering** (#47)
+  - Now uses Freshdesk search API for proper results across all pages
+  - Status filtering (e.g., `--status open`) now returns correct tickets
+  
+- **Fixed Email-based Filtering** (#47)
+  - Implemented proper email filtering by looking up contacts first
+  - Email filtering (e.g., `--email user@example.com`) now works correctly
+  
+- **Improved Ticket Display** (#47)
+  - Ticket list now shows Requester ID instead of empty email field
+  - `ticket get` command now fetches and displays actual email addresses
+  - Avoids N+1 API calls for better performance
+
+**Technical Improvements:**
+- Added `Contact` and `TicketSearchResult` models for API responses
+- All new models registered for AOT compatibility
+- Maintained 100% test coverage with all 92 unit tests passing
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.1.0 August 15th 2025 ####
 
 **Feature Release**
