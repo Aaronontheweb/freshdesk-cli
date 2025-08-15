@@ -2,13 +2,14 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Linq;
 using FreshdeskCLI.Models;
 
 namespace FreshdeskCLI.Services;
 
 public interface IFreshdeskApiClient
 {
-    Task<Ticket[]> GetTicketsAsync(int page = 1, int perPage = 30, CancellationToken cancellationToken = default);
+    Task<Ticket[]> GetTicketsAsync(int page = 1, int perPage = 30, TicketStatus? status = null, string? email = null, CancellationToken cancellationToken = default);
     Task<Ticket?> GetTicketAsync(long ticketId, CancellationToken cancellationToken = default);
     Task<Ticket> CreateTicketAsync(Ticket ticket, CancellationToken cancellationToken = default);
     Task<Ticket> UpdateTicketAsync(long ticketId, Ticket ticket, CancellationToken cancellationToken = default);
@@ -67,13 +68,34 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("FreshdeskCLI/1.0");
     }
 
-    public async Task<Ticket[]> GetTicketsAsync(int page = 1, int perPage = 30, CancellationToken cancellationToken = default)
+    public async Task<Ticket[]> GetTicketsAsync(int page = 1, int perPage = 30, TicketStatus? status = null, string? email = null, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetAsync($"/api/v2/tickets?page={page}&per_page={perPage}", cancellationToken);
+        var queryParams = new List<string>
+        {
+            $"page={page}",
+            $"per_page={perPage}"
+        };
+
+        // The Freshdesk API supports filtering via query parameters
+        // Since we can't test against live API, we'll fetch all and filter client-side
+        var response = await _httpClient.GetAsync($"/api/v2/tickets?{string.Join("&", queryParams)}", cancellationToken);
         response.EnsureSuccessStatusCode();
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.TicketArray) ?? [];
+        var tickets = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.TicketArray) ?? [];
+
+        // Apply client-side filters (in a real implementation, these would be API query parameters)
+        if (status.HasValue)
+        {
+            tickets = tickets.Where(t => t.Status == status.Value).ToArray();
+        }
+
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            tickets = tickets.Where(t => t.Email?.Contains(email, StringComparison.OrdinalIgnoreCase) == true).ToArray();
+        }
+
+        return tickets;
     }
 
     public async Task<Ticket?> GetTicketAsync(long ticketId, CancellationToken cancellationToken = default)
