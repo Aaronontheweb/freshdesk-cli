@@ -1758,25 +1758,25 @@ static async Task<int> InstallBashCompletion()
 {
     var completion = CompletionGenerator.GenerateBashCompletion();
     var homeDir = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    
+
     var completionsDir = Path.Combine(homeDir, ".local", "share", "bash-completion", "completions");
     Directory.CreateDirectory(completionsDir);
-    
+
     var completionFile = Path.Combine(completionsDir, "freshdesk");
     await File.WriteAllTextAsync(completionFile, completion);
-    
+
     var bashrcFile = Path.Combine(homeDir, ".bashrc");
     if (File.Exists(bashrcFile))
     {
         var bashrcContent = await File.ReadAllTextAsync(bashrcFile);
         var sourceCommand = $"[ -f {completionFile} ] && source {completionFile}";
-        
+
         if (!bashrcContent.Contains(sourceCommand))
         {
             await File.AppendAllTextAsync(bashrcFile, $"\n# Freshdesk CLI completion\n{sourceCommand}\n");
         }
     }
-    
+
     Console.WriteLine($"✓ Bash completion installed to {completionFile}");
     Console.WriteLine("  Run 'source ~/.bashrc' to enable completion in current session");
     return 0;
@@ -1786,25 +1786,25 @@ static async Task<int> InstallZshCompletion()
 {
     var completion = CompletionGenerator.GenerateZshCompletion();
     var homeDir = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    
+
     var completionsDir = Path.Combine(homeDir, ".local", "share", "zsh", "site-functions");
     Directory.CreateDirectory(completionsDir);
-    
+
     var completionFile = Path.Combine(completionsDir, "_freshdesk");
     await File.WriteAllTextAsync(completionFile, completion);
-    
+
     var zshrcFile = Path.Combine(homeDir, ".zshrc");
     if (File.Exists(zshrcFile))
     {
         var zshrcContent = await File.ReadAllTextAsync(zshrcFile);
         var fpathCommand = $"fpath=({completionsDir} $fpath)";
-        
+
         if (!zshrcContent.Contains(fpathCommand))
         {
             await File.AppendAllTextAsync(zshrcFile, $"\n# Freshdesk CLI completion\n{fpathCommand}\nautoload -Uz compinit && compinit\n");
         }
     }
-    
+
     Console.WriteLine($"✓ Zsh completion installed to {completionFile}");
     Console.WriteLine("  Run 'source ~/.zshrc' to enable completion in current session");
     return 0;
@@ -1813,7 +1813,7 @@ static async Task<int> InstallZshCompletion()
 static async Task<int> InstallPowerShellCompletion()
 {
     var completion = CompletionGenerator.GeneratePowerShellCompletion();
-    
+
     string? profilePath = null;
     if (OperatingSystem.IsWindows())
     {
@@ -1825,16 +1825,16 @@ static async Task<int> InstallPowerShellCompletion()
         var homeDir = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         profilePath = Path.Combine(homeDir, ".config", "powershell", "Microsoft.PowerShell_profile.ps1");
     }
-    
+
     if (profilePath != null)
     {
         var profileDir = Path.GetDirectoryName(profilePath);
         if (profileDir != null)
             Directory.CreateDirectory(profileDir);
-        
+
         var completionFile = Path.Combine(Path.GetDirectoryName(profilePath)!, "freshdesk-completion.ps1");
         await File.WriteAllTextAsync(completionFile, completion);
-        
+
         if (!File.Exists(profilePath))
         {
             await File.WriteAllTextAsync(profilePath, $"# Freshdesk CLI completion\n. '{completionFile}'\n");
@@ -1843,13 +1843,13 @@ static async Task<int> InstallPowerShellCompletion()
         {
             var profileContent = await File.ReadAllTextAsync(profilePath);
             var sourceCommand = $". '{completionFile}'";
-            
+
             if (!profileContent.Contains("freshdesk-completion.ps1"))
             {
                 await File.AppendAllTextAsync(profilePath, $"\n# Freshdesk CLI completion\n{sourceCommand}\n");
             }
         }
-        
+
         Console.WriteLine($"✓ PowerShell completion installed to {completionFile}");
         Console.WriteLine($"  Run '. $PROFILE' to enable completion in current session");
     }
@@ -1858,6 +1858,6 @@ static async Task<int> InstallPowerShellCompletion()
         Console.WriteLine("Could not determine PowerShell profile path");
         return 1;
     }
-    
+
     return 0;
 }

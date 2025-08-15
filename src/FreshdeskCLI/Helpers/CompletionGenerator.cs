@@ -10,7 +10,7 @@ public static class CompletionGenerator
     private static readonly string[] StatusValues = ["open", "pending", "resolved", "closed"];
     private static readonly string[] PriorityValues = ["low", "medium", "high", "urgent"];
     private static readonly string[] FormatValues = ["json", "table", "csv"];
-    
+
     private static string[] GetTopLevelCommands()
     {
         var topLevel = CommandHelp.HelpRegistry.Keys
@@ -18,11 +18,11 @@ public static class CompletionGenerator
             .ToArray();
         return topLevel.Concat(["install-completion", "update", "bulk"]).ToArray();
     }
-    
+
     private static Dictionary<string, string[]> GetSubCommands()
     {
         var result = new Dictionary<string, string[]>();
-        
+
         foreach (var kvp in CommandHelp.HelpRegistry)
         {
             if (!kvp.Key.Contains(' ') && kvp.Value.Subcommands != null)
@@ -30,20 +30,20 @@ public static class CompletionGenerator
                 result[kvp.Key] = kvp.Value.Subcommands.Keys.ToArray();
             }
         }
-        
+
         result["install-completion"] = [];
         result["update"] = [];
         result["bulk"] = ["update", "export", "delete"];
         return result;
     }
-    
+
     private static Dictionary<string, string[]> GetCommandOptions()
     {
         var result = new Dictionary<string, string[]>
         {
             ["global"] = GlobalOptions
         };
-        
+
         foreach (var kvp in CommandHelp.HelpRegistry)
         {
             if (kvp.Value.Options != null)
@@ -64,16 +64,16 @@ public static class CompletionGenerator
                 }
                 options.Add("--help");
                 options.Add("-h");
-                
+
                 var key = kvp.Key.Replace(" ", ".");
                 result[key] = options.Distinct().ToArray();
             }
         }
-        
+
         result["bulk.update"] = ["--ids", "--status", "--priority", "--assignee", "--help", "-h"];
         result["bulk.export"] = ["--ids", "--output", "--format", "--help", "-h"];
         result["bulk.delete"] = ["--ids", "--confirm", "--help", "-h"];
-        
+
         return result;
     }
 
@@ -82,9 +82,9 @@ public static class CompletionGenerator
         var topLevelCommands = GetTopLevelCommands();
         var subCommands = GetSubCommands();
         var commandOptions = GetCommandOptions();
-        
+
         var sb = new StringBuilder();
-        
+
         sb.AppendLine("#!/bin/bash");
         sb.AppendLine("# Bash completion script for freshdesk CLI");
         sb.AppendLine("# Generated automatically - do not edit manually");
@@ -95,7 +95,7 @@ public static class CompletionGenerator
         sb.AppendLine("    cur=\"${COMP_WORDS[COMP_CWORD]}\"");
         sb.AppendLine("    prev=\"${COMP_WORDS[COMP_CWORD-1]}\"");
         sb.AppendLine();
-        
+
         sb.AppendLine("    # Handle option value completion");
         sb.AppendLine("    case \"${prev}\" in");
         sb.AppendLine("        --status)");
@@ -116,7 +116,7 @@ public static class CompletionGenerator
         sb.AppendLine("            ;;");
         sb.AppendLine("    esac");
         sb.AppendLine();
-        
+
         sb.AppendLine("    # Command position detection");
         sb.AppendLine("    local cmd subcmd");
         sb.AppendLine("    if [ $COMP_CWORD -ge 1 ]; then");
@@ -126,14 +126,14 @@ public static class CompletionGenerator
         sb.AppendLine("        subcmd=\"${COMP_WORDS[2]}\"");
         sb.AppendLine("    fi");
         sb.AppendLine();
-        
+
         sb.AppendLine("    # First level: freshdesk [command]");
         sb.AppendLine("    if [ $COMP_CWORD -eq 1 ]; then");
         sb.AppendLine($"        COMPREPLY=( $(compgen -W \"{string.Join(" ", topLevelCommands.Concat(commandOptions["global"]))}\" -- \"${{cur}}\") )");
         sb.AppendLine("        return 0");
         sb.AppendLine("    fi");
         sb.AppendLine();
-        
+
         sb.AppendLine("    # Second level: freshdesk [command] [subcommand]");
         sb.AppendLine("    if [ $COMP_CWORD -eq 2 ]; then");
         sb.AppendLine("        case \"${cmd}\" in");
@@ -150,7 +150,7 @@ public static class CompletionGenerator
         sb.AppendLine("        esac");
         sb.AppendLine("    fi");
         sb.AppendLine();
-        
+
         sb.AppendLine("    # Third level and beyond: options for specific commands");
         sb.AppendLine("    if [ $COMP_CWORD -ge 3 ]; then");
         sb.AppendLine("        local cmd_key=\"${cmd}.${subcmd}\"");
@@ -167,7 +167,7 @@ public static class CompletionGenerator
         sb.AppendLine("}");
         sb.AppendLine();
         sb.AppendLine("complete -F _freshdesk freshdesk");
-        
+
         return sb.ToString();
     }
 
@@ -175,9 +175,9 @@ public static class CompletionGenerator
     {
         var topLevelCommands = GetTopLevelCommands();
         var subCommands = GetSubCommands();
-        
+
         var sb = new StringBuilder();
-        
+
         sb.AppendLine("#compdef freshdesk");
         sb.AppendLine("# Zsh completion script for freshdesk CLI");
         sb.AppendLine("# Generated automatically - do not edit manually");
@@ -199,7 +199,7 @@ public static class CompletionGenerator
         sb.AppendLine("    esac");
         sb.AppendLine("}");
         sb.AppendLine();
-        
+
         sb.AppendLine("_freshdesk_commands() {");
         sb.AppendLine("    local commands; commands=(");
         foreach (var cmd in topLevelCommands)
@@ -210,7 +210,7 @@ public static class CompletionGenerator
         sb.AppendLine("    _describe -t commands 'freshdesk command' commands");
         sb.AppendLine("}");
         sb.AppendLine();
-        
+
         foreach (var kvp in subCommands.Where(k => k.Value.Length > 0))
         {
             sb.AppendLine($"_freshdesk_{kvp.Key}() {{");
@@ -224,19 +224,19 @@ public static class CompletionGenerator
             sb.AppendLine("}");
             sb.AppendLine();
         }
-        
+
         sb.AppendLine("_freshdesk \"$@\"");
-        
+
         return sb.ToString();
     }
-    
+
     public static string GeneratePowerShellCompletion()
     {
         var topLevelCommands = GetTopLevelCommands();
         var subCommands = GetSubCommands();
-        
+
         var sb = new StringBuilder();
-        
+
         sb.AppendLine("# PowerShell completion script for freshdesk CLI");
         sb.AppendLine("# Generated automatically - do not edit manually");
         sb.AppendLine();
@@ -244,7 +244,7 @@ public static class CompletionGenerator
         sb.AppendLine("    param($wordToComplete, $commandAst, $cursorPosition)");
         sb.AppendLine();
         sb.AppendLine("    $commands = @{");
-        
+
         foreach (var cmd in topLevelCommands)
         {
             sb.AppendLine($"        '{cmd}' = @{{");
@@ -256,7 +256,7 @@ public static class CompletionGenerator
         }
         sb.AppendLine("    }");
         sb.AppendLine();
-        
+
         sb.AppendLine("    $completions = @()");
         sb.AppendLine("    $elements = $commandAst.CommandElements");
         sb.AppendLine("    $elementCount = $elements.Count");
@@ -281,10 +281,10 @@ public static class CompletionGenerator
         sb.AppendLine("        [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_)");
         sb.AppendLine("    }");
         sb.AppendLine("}");
-        
+
         return sb.ToString();
     }
-    
+
     private static string GetSubcommandDescription(string command, string subcommand)
     {
         if (CommandHelp.HelpRegistry.TryGetValue(command, out var cmdHelp) && cmdHelp.Subcommands != null)
@@ -294,7 +294,7 @@ public static class CompletionGenerator
                 return desc;
             }
         }
-        
+
         return (command, subcommand) switch
         {
             ("bulk", "update") => "Update multiple tickets",
