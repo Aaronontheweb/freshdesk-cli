@@ -4,6 +4,7 @@ using FreshdeskCLI;
 using FreshdeskCLI.Models;
 using FreshdeskCLI.Helpers;
 using FreshdeskCLI.Services;
+using static FreshdeskCLI.Helpers.EnumParser;
 
 // For now, use a simpler approach without System.CommandLine's complex features
 // System.CommandLine is AOT-compatible but the beta API is still evolving
@@ -328,8 +329,20 @@ static async Task<int> HandleTicketList(string[] args, FreshdeskCLI.Services.Fre
                 break;
             case "--status":
             case "-s":
-                if (i + 1 < args.Length && Enum.TryParse<TicketStatus>(args[++i], true, out var s))
-                    statusFilter = s;
+                if (i + 1 < args.Length)
+                {
+                    var statusArg = args[++i];
+                    if (TryParseTicketStatus(statusArg, out var s))
+                    {
+                        statusFilter = s;
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"Invalid status value: '{statusArg}'");
+                        Console.Error.WriteLine(GetValidStatusValues());
+                        return 1;
+                    }
+                }
                 break;
             case "--email":
             case "--customer":
@@ -462,8 +475,20 @@ static async Task<int> HandleTicketCreate(string[] args, FreshdeskCLI.Services.F
                 break;
             case "--priority":
             case "-p":
-                if (i + 1 < args.Length && Enum.TryParse<TicketPriority>(args[++i], true, out var p))
-                    priority = p;
+                if (i + 1 < args.Length)
+                {
+                    var priorityArg = args[++i];
+                    if (TryParseTicketPriority(priorityArg, out var p))
+                    {
+                        priority = p;
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"Invalid priority value: '{priorityArg}'");
+                        Console.Error.WriteLine(GetValidPriorityValues());
+                        return 1;
+                    }
+                }
                 break;
         }
     }
@@ -524,13 +549,37 @@ static async Task<int> HandleTicketUpdate(string[] args, FreshdeskCLI.Services.F
         {
             case "--status":
             case "-s":
-                if (i + 1 < args.Length && Enum.TryParse<TicketStatus>(args[++i], true, out var s))
-                    status = s;
+                if (i + 1 < args.Length)
+                {
+                    var statusArg = args[++i];
+                    if (TryParseTicketStatus(statusArg, out var s))
+                    {
+                        status = s;
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"Invalid status value: '{statusArg}'");
+                        Console.Error.WriteLine(GetValidStatusValues());
+                        return 1;
+                    }
+                }
                 break;
             case "--priority":
             case "-p":
-                if (i + 1 < args.Length && Enum.TryParse<TicketPriority>(args[++i], true, out var p))
-                    priority = p;
+                if (i + 1 < args.Length)
+                {
+                    var priorityArg = args[++i];
+                    if (TryParseTicketPriority(priorityArg, out var p))
+                    {
+                        priority = p;
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"Invalid priority value: '{priorityArg}'");
+                        Console.Error.WriteLine(GetValidPriorityValues());
+                        return 1;
+                    }
+                }
                 break;
         }
     }
@@ -586,13 +635,37 @@ static async Task<int> HandleTicketSearch(string[] args, FreshdeskCLI.Services.F
                 break;
             case "--status":
             case "-s":
-                if (i + 1 < args.Length && Enum.TryParse<TicketStatus>(args[++i], true, out var s))
-                    statusFilter = s;
+                if (i + 1 < args.Length)
+                {
+                    var statusArg = args[++i];
+                    if (TryParseTicketStatus(statusArg, out var s))
+                    {
+                        statusFilter = s;
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"Invalid status value: '{statusArg}'");
+                        Console.Error.WriteLine(GetValidStatusValues());
+                        return 1;
+                    }
+                }
                 break;
             case "--priority":
             case "-p":
-                if (i + 1 < args.Length && Enum.TryParse<TicketPriority>(args[++i], true, out var p))
-                    priorityFilter = p;
+                if (i + 1 < args.Length)
+                {
+                    var priorityArg = args[++i];
+                    if (TryParseTicketPriority(priorityArg, out var p))
+                    {
+                        priorityFilter = p;
+                    }
+                    else
+                    {
+                        Console.Error.WriteLine($"Invalid priority value: '{priorityArg}'");
+                        Console.Error.WriteLine(GetValidPriorityValues());
+                        return 1;
+                    }
+                }
                 break;
             case "--email":
             case "--customer":
@@ -1275,13 +1348,13 @@ static async Task<int> HandleExportTickets(string[] args, FreshdeskCLI.Services.
         // Apply filters
         if (!string.IsNullOrEmpty(status))
         {
-            if (Enum.TryParse<TicketStatus>(status, true, out var statusEnum))
+            if (TryParseTicketStatus(status, out var statusEnum))
                 tickets = tickets.Where(t => t.Status == statusEnum).ToArray();
         }
 
         if (!string.IsNullOrEmpty(priority))
         {
-            if (Enum.TryParse<TicketPriority>(priority, true, out var priorityEnum))
+            if (TryParseTicketPriority(priority, out var priorityEnum))
                 tickets = tickets.Where(t => t.Priority == priorityEnum).ToArray();
         }
 
