@@ -1,3 +1,48 @@
+#### 1.1.2 August 15th 2025 ####
+
+**Feature Release**
+
+This release adds powerful filtering capabilities to help you focus on active tickets.
+
+**New Features:**
+- **Unresolved Ticket Filtering** (#49)
+  - Added `--unresolved` flag to `ticket list` command
+  - Filters out resolved and closed tickets, showing only active work
+  - Uses targeted API searches for each unresolved status (Open, Pending, Waiting on Customer, Waiting on Third Party)
+  - Deduplicates and sorts results by creation date (newest first)
+  - Compatible with existing filtering options like `--email`
+
+**Technical Improvements:**
+- Enhanced API search strategy to avoid pagination limitations
+- Comprehensive test coverage for new filtering functionality
+- Maintained AOT compatibility and performance standards
+
+**Usage Example:**
+```bash
+# Show only unresolved tickets
+freshdesk ticket list --unresolved
+
+# Combine with other filters
+freshdesk ticket list --unresolved --email user@example.com
+```
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.1.1 August 15th 2025 ####
 
 **Bug Fix Release**
