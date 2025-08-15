@@ -225,8 +225,6 @@ jobs:
           \`\`\`
           
           ## What's Changed
-          
-          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ env.VERSION }}/CHANGELOG.md) for details.
           EOF
 
       - name: "Create GitHub Release"
