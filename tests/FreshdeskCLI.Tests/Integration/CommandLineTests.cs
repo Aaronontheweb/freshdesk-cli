@@ -155,6 +155,38 @@ public class CommandLineTests : IDisposable
         Assert.Contains("50", result.CommandLine);
     }
 
+    [Fact]
+    public async Task TicketListCommand_WithUnresolvedFlag_IncludesFlag()
+    {
+        // Arrange
+        await SetupTestConfig();
+
+        // Act
+        var result = await RunCommandAsync("ticket list --unresolved", _testConfigPath);
+
+        // Assert
+        Assert.Contains("--unresolved", result.CommandLine);
+    }
+
+    [Fact]
+    public async Task TicketListCommand_WithUnresolvedAndOtherFlags_ParsesCorrectly()
+    {
+        // Arrange
+        await SetupTestConfig();
+
+        // Act
+        var result = await RunCommandAsync(
+            "ticket list --unresolved --format json --limit 25",
+            _testConfigPath);
+
+        // Assert
+        Assert.Contains("--unresolved", result.CommandLine);
+        Assert.Contains("--format", result.CommandLine);
+        Assert.Contains("json", result.CommandLine);
+        Assert.Contains("--limit", result.CommandLine);
+        Assert.Contains("25", result.CommandLine);
+    }
+
     private async Task SetupTestConfig()
     {
         var configPath = Path.Combine(_testConfigPath, "config.json");

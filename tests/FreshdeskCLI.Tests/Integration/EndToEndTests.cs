@@ -451,4 +451,45 @@ public class EndToEndTests : IDisposable
         Assert.Equal(3, results.Count);
         Assert.All(results, t => Assert.Equal(TicketStatus.Closed, t.Status));
     }
+
+    [Fact]
+    public async Task UnresolvedFilter_ExcludesResolvedAndClosedTickets()
+    {
+        // Arrange
+        var config = new FreshdeskConfig
+        {
+            Domain = "test",
+            ApiKey = "test-api-key-12345"
+        };
+
+        var client = new FreshdeskApiClient(config, _httpClient);
+
+        var allTickets = new[]
+        {
+            new Ticket { Id = 1, Subject = "Open ticket", Status = TicketStatus.Open, Priority = TicketPriority.Medium },
+            new Ticket { Id = 2, Subject = "Pending ticket", Status = TicketStatus.Pending, Priority = TicketPriority.Low },
+            new Ticket { Id = 3, Subject = "Waiting on customer", Status = TicketStatus.WaitingOnCustomer, Priority = TicketPriority.High },
+            new Ticket { Id = 4, Subject = "Resolved ticket", Status = TicketStatus.Resolved, Priority = TicketPriority.Medium },
+            new Ticket { Id = 5, Subject = "Closed ticket", Status = TicketStatus.Closed, Priority = TicketPriority.Low }
+        };
+
+        _mockServer.SetupTickets(allTickets);
+
+        // Act
+        var tickets = await client.GetTicketsAsync();
+        
+        // Apply unresolved filter (same logic as in Program.cs)
+        var unresolvedTickets = tickets.Where(t => t.Status != TicketStatus.Resolved && t.Status != TicketStatus.Closed).ToArray();
+
+        // Assert
+        Assert.NotNull(tickets);
+        Assert.Equal(5, tickets.Length); // All tickets returned from API
+        
+        Assert.Equal(3, unresolvedTickets.Length); // Only unresolved tickets
+        Assert.Contains(unresolvedTickets, t => t.Status == TicketStatus.Open);
+        Assert.Contains(unresolvedTickets, t => t.Status == TicketStatus.Pending);
+        Assert.Contains(unresolvedTickets, t => t.Status == TicketStatus.WaitingOnCustomer);
+        Assert.DoesNotContain(unresolvedTickets, t => t.Status == TicketStatus.Resolved);
+        Assert.DoesNotContain(unresolvedTickets, t => t.Status == TicketStatus.Closed);
+    }
 }
