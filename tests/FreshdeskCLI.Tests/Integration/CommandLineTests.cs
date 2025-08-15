@@ -229,7 +229,7 @@ public class CommandLineTests : IDisposable
     {
         var projectRoot = GetProjectRoot();
         var projectPath = Path.Combine(projectRoot, "src", "FreshdeskCLI", "FreshdeskCLI.csproj");
-        
+
         var startInfo = new ProcessStartInfo
         {
             FileName = "dotnet",
