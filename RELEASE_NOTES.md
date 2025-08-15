@@ -1,3 +1,47 @@
+#### 1.1.0 August 15th 2025 ####
+
+**Feature Release**
+
+This release brings significant new features and improvements to the Freshdesk CLI.
+
+**New Features:**
+- **Tab Completion Support** - Added shell completion for bash, zsh, and PowerShell (#45)
+  - Auto-complete commands and options
+  - Easy installation with `freshdesk completion` command
+  - Supports all major shells
+  
+- **Version Management** - Added version display and update checking (#44)
+  - Check current version with `--version` flag
+  - Automatic update notifications
+  - Self-update capability
+  
+- **Comprehensive Help System** - Improved help for all CLI commands
+  - Detailed command descriptions
+  - Examples for common use cases
+  - Better error messages
+
+**Improvements:**
+- Enhanced filter parsing and ticket list display
+- Better integration test coverage
+- Improved code formatting and consistency
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.0.4 August 15th 2025 ####
 
 **Critical Bug Fix Release**
