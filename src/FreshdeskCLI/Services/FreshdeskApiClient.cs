@@ -165,14 +165,14 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
                 }
             }
             catch { }
-            
+
             // If S3 URL fails, extract attachment ID and use API endpoint
             var match = System.Text.RegularExpressions.Regex.Match(attachmentUrl, @"/attachments/production/(\d+)/");
             if (match.Success && long.TryParse(match.Groups[1].Value, out var attachmentId))
             {
                 return await DownloadAttachmentByIdAsync(attachmentId, cancellationToken);
             }
-            
+
             // Last resort: try the URL as-is
             var finalResponse = await _httpClient.GetAsync(attachmentUrl, cancellationToken);
             finalResponse.EnsureSuccessStatusCode();

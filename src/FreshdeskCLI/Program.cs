@@ -832,7 +832,7 @@ static async Task<int> HandleAttachmentList(string[] args, FreshdeskCLI.Services
     }
 
     var allAttachments = new List<(Attachment attachment, string source)>();
-    
+
     if (ticket.Attachments != null && ticket.Attachments.Length > 0)
     {
         foreach (var att in ticket.Attachments)
@@ -918,7 +918,7 @@ static async Task<int> HandleAttachmentDownload(string[] args, FreshdeskCLI.Serv
 
     // First check ticket attachments
     var attachment = ticket.Attachments?.FirstOrDefault(a => a.Id == attachmentId);
-    
+
     // If not found in ticket, check conversation attachments
     if (attachment == null)
     {
@@ -934,7 +934,7 @@ static async Task<int> HandleAttachmentDownload(string[] args, FreshdeskCLI.Serv
             }
         }
     }
-    
+
     if (attachment == null)
     {
         Console.WriteLine($"Attachment {attachmentId} not found in ticket {ticketId} or its conversations");
@@ -968,7 +968,7 @@ static async Task<int> HandleBulkAttachmentDownload(string[] args, FreshdeskCLI.
     }
 
     var includeConversations = args.Contains("--include-conversations");
-    
+
     // Always fetch fresh ticket data to get valid attachment URLs
     Console.WriteLine($"Fetching fresh ticket data for #{ticketId}...");
     var ticket = await client.GetTicketAsync(ticketId);
@@ -979,7 +979,7 @@ static async Task<int> HandleBulkAttachmentDownload(string[] args, FreshdeskCLI.
     }
 
     var allAttachments = new List<Attachment>();
-    
+
     if (ticket.Attachments != null && ticket.Attachments.Length > 0)
     {
         allAttachments.AddRange(ticket.Attachments);
@@ -1019,7 +1019,7 @@ static async Task<int> HandleBulkAttachmentDownload(string[] args, FreshdeskCLI.
     Directory.CreateDirectory(ticketFolder);
 
     Console.WriteLine($"Downloading {allAttachments.Count} attachments to {ticketFolder}...\n");
-    
+
     var successCount = 0;
     var errorCount = 0;
     var totalBytes = 0L;
@@ -1029,7 +1029,7 @@ static async Task<int> HandleBulkAttachmentDownload(string[] args, FreshdeskCLI.
     {
         var fileName = Path.GetInvalidFileNameChars().Aggregate(attachment.Name, (current, c) => current.Replace(c, '_'));
         var filePath = Path.Combine(ticketFolder, fileName);
-        
+
         // Handle duplicate filenames
         if (File.Exists(filePath))
         {
@@ -1045,7 +1045,7 @@ static async Task<int> HandleBulkAttachmentDownload(string[] args, FreshdeskCLI.
         }
 
         Console.Write($"Downloading {attachment.Name} ({attachment.FormattedSize})... ");
-        
+
         try
         {
             var data = await client.DownloadAttachmentAsync(attachment.AttachmentUrl);
