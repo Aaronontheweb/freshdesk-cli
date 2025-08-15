@@ -18,7 +18,10 @@ public class CommandLineTests : IDisposable
 
         // Build the CLI project to get the executable path
         var projectRoot = GetProjectRoot();
-        _cliPath = Path.Combine(projectRoot, "src", "FreshdeskCLI", "bin", "Debug", "net9.0", "FreshdeskCLI");
+
+        // Use Release build in CI environment, Debug locally
+        var configuration = Environment.GetEnvironmentVariable("CI") == "true" ? "Release" : "Debug";
+        _cliPath = Path.Combine(projectRoot, "src", "FreshdeskCLI", "bin", configuration, "net9.0", "freshdesk");
 
         if (OperatingSystem.IsWindows())
         {
@@ -34,7 +37,7 @@ public class CommandLineTests : IDisposable
             Directory.Delete(_testDownloadPath, true);
     }
 
-    [Fact(Skip = "Requires built CLI executable")]
+    [Fact]
     public async Task HelpCommand_ShowsUsage()
     {
         // Act
@@ -44,11 +47,11 @@ public class CommandLineTests : IDisposable
         Assert.Equal(0, result.ExitCode);
         Assert.Contains("Freshdesk CLI", result.Output);
         Assert.Contains("Usage:", result.Output);
-        Assert.Contains("configure", result.Output);
+        Assert.Contains("config", result.Output);
         Assert.Contains("ticket", result.Output);
     }
 
-    [Fact(Skip = "Requires built CLI executable")]
+    [Fact]
     public async Task VersionCommand_ShowsVersion()
     {
         // Act
@@ -61,7 +64,7 @@ public class CommandLineTests : IDisposable
         Assert.Contains("https://aaronstannard.com/", result.Output);
     }
 
-    [Fact(Skip = "Requires built CLI executable")]
+    [Fact]
     public async Task ConfigureCommand_WithoutConfig_ShowsError()
     {
         // Act
@@ -69,10 +72,10 @@ public class CommandLineTests : IDisposable
 
         // Assert
         Assert.NotEqual(0, result.ExitCode);
-        Assert.Contains("No configuration found", result.Output);
+        Assert.Contains("Invalid or missing configuration", result.Output);
     }
 
-    [Fact(Skip = "Requires built CLI executable")]
+    [Fact]
     public async Task TicketListCommand_WithJsonOutput_ReturnsJson()
     {
         // Arrange
@@ -87,7 +90,7 @@ public class CommandLineTests : IDisposable
         Assert.Contains("json", result.CommandLine);
     }
 
-    [Fact(Skip = "Requires built CLI executable")]
+    [Fact]
     public async Task TicketGetCommand_WithId_IncludesId()
     {
         // Arrange
@@ -100,7 +103,7 @@ public class CommandLineTests : IDisposable
         Assert.Contains("123", result.CommandLine);
     }
 
-    [Fact(Skip = "Requires built CLI executable")]
+    [Fact]
     public async Task TicketCreateCommand_WithReadOnly_ShowsError()
     {
         // Arrange
@@ -116,7 +119,7 @@ public class CommandLineTests : IDisposable
         Assert.Contains("--read-only", result.CommandLine);
     }
 
-    [Fact(Skip = "Requires built CLI executable")]
+    [Fact]
     public async Task AttachmentListCommand_RequiresTicketId()
     {
         // Arrange
@@ -130,7 +133,7 @@ public class CommandLineTests : IDisposable
         Assert.NotEqual(0, result.ExitCode);
     }
 
-    [Fact(Skip = "Requires built CLI executable")]
+    [Fact]
     public async Task ComplexCommand_WithMultipleFlags_ParsesCorrectly()
     {
         // Arrange
@@ -210,12 +213,56 @@ public class CommandLineTests : IDisposable
         var error = await process.StandardError.ReadToEndAsync();
         await process.WaitForExitAsync();
 
+        // If direct executable fails with runtime error (exit code 150), try dotnet run as fallback
+        if (process.ExitCode == 150 && error.Contains("Microsoft.NETCore.App"))
+        {
+            return await RunWithDotnetAsync(arguments, configPath);
+        }
+
         return new CommandResult
         {
             ExitCode = process.ExitCode,
             Output = output,
             Error = error,
             CommandLine = $"{_cliPath} {arguments}"
+        };
+    }
+
+    private async Task<CommandResult> RunWithDotnetAsync(string arguments, string configPath)
+    {
+        var projectRoot = GetProjectRoot();
+        var projectPath = Path.Combine(projectRoot, "src", "FreshdeskCLI", "FreshdeskCLI.csproj");
+
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = "dotnet",
+            Arguments = $"run --project \"{projectPath}\" -- {arguments}",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            Environment =
+            {
+                ["FRESHDESK_CONFIG_PATH"] = configPath
+            }
+        };
+
+        using var process = Process.Start(startInfo);
+        if (process == null)
+        {
+            throw new InvalidOperationException("Failed to start dotnet process");
+        }
+
+        var output = await process.StandardOutput.ReadToEndAsync();
+        var error = await process.StandardError.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        return new CommandResult
+        {
+            ExitCode = process.ExitCode,
+            Output = output,
+            Error = error,
+            CommandLine = $"dotnet run --project {projectPath} -- {arguments}"
         };
     }
 
