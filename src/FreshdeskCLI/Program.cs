@@ -877,9 +877,11 @@ static async Task<int> HandleAttachmentList(string[] args, FreshdeskCLI.Services
 {
     if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk attachment list <ticket-id>");
+        Console.WriteLine("Usage: freshdesk attachment list <ticket-id> [--include-conversations]");
         return 1;
     }
+
+    var includeConversations = args.Contains("--include-conversations");
 
     var ticket = await client.GetTicketAsync(ticketId);
     if (ticket == null)
@@ -888,24 +890,50 @@ static async Task<int> HandleAttachmentList(string[] args, FreshdeskCLI.Services
         return 1;
     }
 
-    if (ticket.Attachments == null || ticket.Attachments.Length == 0)
+    var allAttachments = new List<(Attachment attachment, string source)>();
+
+    if (ticket.Attachments != null && ticket.Attachments.Length > 0)
+    {
+        foreach (var att in ticket.Attachments)
+            allAttachments.Add((att, "Ticket"));
+    }
+
+    if (includeConversations)
+    {
+        var conversations = await client.GetTicketConversationsAsync(ticketId);
+        foreach (var conv in conversations)
+        {
+            if (conv.Attachments != null && conv.Attachments.Length > 0)
+            {
+                foreach (var att in conv.Attachments)
+                    allAttachments.Add((att, $"Conv #{conv.Id}"));
+            }
+        }
+    }
+
+    if (allAttachments.Count == 0)
     {
         Console.WriteLine($"No attachments found for ticket #{ticketId}");
+        if (!includeConversations)
+            Console.WriteLine("Tip: Use --include-conversations to check conversation attachments");
         return 0;
     }
 
     Console.WriteLine($"Attachments for ticket #{ticketId}: {ticket.Subject}");
-    Console.WriteLine(new string('-', 80));
-    Console.WriteLine($"{"ID",-15} {"Name",-40} {"Size",-10} {"Type",-15}");
-    Console.WriteLine(new string('-', 80));
+    Console.WriteLine(new string('-', 100));
+    Console.WriteLine($"{"ID",-15} {"Name",-35} {"Size",-10} {"Type",-15} {"Source",-15}");
+    Console.WriteLine(new string('-', 100));
 
-    foreach (var attachment in ticket.Attachments)
+    foreach (var (attachment, source) in allAttachments)
     {
-        var name = attachment.Name.Length > 40 ? attachment.Name[..37] + "..." : attachment.Name;
-        Console.WriteLine($"{attachment.Id,-15} {name,-40} {attachment.FormattedSize,-10} {attachment.ContentType,-15}");
+        var name = attachment.Name.Length > 35 ? attachment.Name[..32] + "..." : attachment.Name;
+        var type = attachment.ContentType?.Length > 15 ? attachment.ContentType[..12] + "..." : attachment.ContentType ?? "unknown";
+        Console.WriteLine($"{attachment.Id,-15} {name,-35} {attachment.FormattedSize,-10} {type,-15} {source,-15}");
     }
 
-    Console.WriteLine($"\nTotal: {ticket.Attachments.Length} attachments");
+    Console.WriteLine($"\nTotal: {allAttachments.Count} attachments");
+    if (!includeConversations && allAttachments.Count > 0)
+        Console.WriteLine("Tip: Use --include-conversations to include conversation attachments");
     return 0;
 }
 
@@ -938,6 +966,8 @@ static async Task<int> HandleAttachmentDownload(string[] args, FreshdeskCLI.Serv
         }
     }
 
+    // Always fetch fresh ticket data to get valid attachment URLs
+    Console.WriteLine($"Fetching fresh ticket data for #{ticketId}...");
     var ticket = await client.GetTicketAsync(ticketId);
     if (ticket == null)
     {
@@ -945,10 +975,28 @@ static async Task<int> HandleAttachmentDownload(string[] args, FreshdeskCLI.Serv
         return 1;
     }
 
+    // First check ticket attachments
     var attachment = ticket.Attachments?.FirstOrDefault(a => a.Id == attachmentId);
+
+    // If not found in ticket, check conversation attachments
     if (attachment == null)
     {
-        Console.WriteLine($"Attachment {attachmentId} not found in ticket {ticketId}");
+        Console.WriteLine("Attachment not found in ticket, checking conversations...");
+        var conversations = await client.GetTicketConversationsAsync(ticketId);
+        foreach (var conv in conversations)
+        {
+            attachment = conv.Attachments?.FirstOrDefault(a => a.Id == attachmentId);
+            if (attachment != null)
+            {
+                Console.WriteLine($"Found attachment in conversation #{conv.Id}");
+                break;
+            }
+        }
+    }
+
+    if (attachment == null)
+    {
+        Console.WriteLine($"Attachment {attachmentId} not found in ticket {ticketId} or its conversations");
         return 1;
     }
 
@@ -974,10 +1022,14 @@ static async Task<int> HandleBulkAttachmentDownload(string[] args, FreshdeskCLI.
 {
     if (args.Length < 1 || !long.TryParse(args[0], out var ticketId))
     {
-        Console.WriteLine("Usage: freshdesk attachment download <ticket-id> all [--output <path>]");
+        Console.WriteLine("Usage: freshdesk attachment download <ticket-id> all [--output <path>] [--include-conversations]");
         return 1;
     }
 
+    var includeConversations = args.Contains("--include-conversations");
+
+    // Always fetch fresh ticket data to get valid attachment URLs
+    Console.WriteLine($"Fetching fresh ticket data for #{ticketId}...");
     var ticket = await client.GetTicketAsync(ticketId);
     if (ticket == null)
     {
@@ -985,9 +1037,31 @@ static async Task<int> HandleBulkAttachmentDownload(string[] args, FreshdeskCLI.
         return 1;
     }
 
-    if (ticket.Attachments == null || ticket.Attachments.Length == 0)
+    var allAttachments = new List<Attachment>();
+
+    if (ticket.Attachments != null && ticket.Attachments.Length > 0)
+    {
+        allAttachments.AddRange(ticket.Attachments);
+    }
+
+    if (includeConversations)
+    {
+        Console.WriteLine("Fetching conversation attachments...");
+        var conversations = await client.GetTicketConversationsAsync(ticketId);
+        foreach (var conv in conversations)
+        {
+            if (conv.Attachments != null && conv.Attachments.Length > 0)
+            {
+                allAttachments.AddRange(conv.Attachments);
+            }
+        }
+    }
+
+    if (allAttachments.Count == 0)
     {
         Console.WriteLine($"No attachments found for ticket #{ticketId}");
+        if (!includeConversations)
+            Console.WriteLine("Tip: Use --include-conversations to include conversation attachments");
         return 0;
     }
 
@@ -1003,20 +1077,61 @@ static async Task<int> HandleBulkAttachmentDownload(string[] args, FreshdeskCLI.
     var ticketFolder = Path.Combine(outputPath, $"ticket_{ticketId}_attachments");
     Directory.CreateDirectory(ticketFolder);
 
-    var bulkService = new BulkOperationService(client);
-    var result = await bulkService.DownloadAttachmentsAsync(ticket, ticketFolder, showProgress: true);
+    Console.WriteLine($"Downloading {allAttachments.Count} attachments to {ticketFolder}...\n");
+
+    var successCount = 0;
+    var errorCount = 0;
+    var totalBytes = 0L;
+    var errors = new List<string>();
+
+    foreach (var attachment in allAttachments)
+    {
+        var fileName = Path.GetInvalidFileNameChars().Aggregate(attachment.Name, (current, c) => current.Replace(c, '_'));
+        var filePath = Path.Combine(ticketFolder, fileName);
+
+        // Handle duplicate filenames
+        if (File.Exists(filePath))
+        {
+            var nameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+            var ext = Path.GetExtension(fileName);
+            var counter = 1;
+            do
+            {
+                fileName = $"{nameWithoutExt}_{counter}{ext}";
+                filePath = Path.Combine(ticketFolder, fileName);
+                counter++;
+            } while (File.Exists(filePath));
+        }
+
+        Console.Write($"Downloading {attachment.Name} ({attachment.FormattedSize})... ");
+
+        try
+        {
+            var data = await client.DownloadAttachmentAsync(attachment.AttachmentUrl);
+            await File.WriteAllBytesAsync(filePath, data);
+            successCount++;
+            totalBytes += data.Length;
+            Console.WriteLine("✓");
+        }
+        catch (Exception ex)
+        {
+            errorCount++;
+            errors.Add($"{attachment.Name}: {ex.Message}");
+            Console.WriteLine($"✗ ({ex.Message})");
+        }
+    }
 
     Console.WriteLine($"\nDownload Summary:");
-    Console.WriteLine($"  Successfully downloaded: {result.SuccessCount}/{result.TotalFiles} files");
-    Console.WriteLine($"  Total size: {FormatFileSize(result.TotalBytes)}");
+    Console.WriteLine($"  Successfully downloaded: {successCount}/{allAttachments.Count} files");
+    Console.WriteLine($"  Total size: {FormatFileSize(totalBytes)}");
     Console.WriteLine($"  Location: {ticketFolder}");
 
-    if (result.ErrorCount > 0)
+    if (errorCount > 0)
     {
-        Console.WriteLine($"\nErrors occurred for {result.ErrorCount} files:");
-        foreach (var error in result.Errors)
+        Console.WriteLine($"\nErrors occurred for {errorCount} files:");
+        foreach (var error in errors)
         {
-            Console.WriteLine($"  - {error.Error}");
+            Console.WriteLine($"  - {error}");
         }
         return 1;
     }

@@ -16,6 +16,7 @@ public interface IFreshdeskApiClient
     Task<Conversation[]> GetTicketConversationsAsync(long ticketId, CancellationToken cancellationToken = default);
     Task<Conversation> ReplyToTicketAsync(long ticketId, string body, bool isPrivate = false, CancellationToken cancellationToken = default);
     Task<byte[]> DownloadAttachmentAsync(string attachmentUrl, CancellationToken cancellationToken = default);
+    Task<byte[]> DownloadAttachmentByIdAsync(long attachmentId, CancellationToken cancellationToken = default);
     Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default);
 }
 
@@ -173,10 +174,49 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
     {
         ArgumentException.ThrowIfNullOrEmpty(attachmentUrl);
 
-        // Attachments require authentication too
-        var response = await _httpClient.GetAsync(attachmentUrl, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        // Check if this is an S3 URL or attachment ID
+        if (attachmentUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            // Try the S3 URL first (it might still be valid)
+            try
+            {
+                var response = await _httpClient.GetAsync(attachmentUrl, cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+                }
+            }
+            catch { }
 
+            // If S3 URL fails, extract attachment ID and use API endpoint
+            var match = System.Text.RegularExpressions.Regex.Match(attachmentUrl, @"/attachments/production/(\d+)/");
+            if (match.Success && long.TryParse(match.Groups[1].Value, out var attachmentId))
+            {
+                return await DownloadAttachmentByIdAsync(attachmentId, cancellationToken);
+            }
+
+            // Last resort: try the URL as-is
+            var finalResponse = await _httpClient.GetAsync(attachmentUrl, cancellationToken);
+            finalResponse.EnsureSuccessStatusCode();
+            return await finalResponse.Content.ReadAsByteArrayAsync(cancellationToken);
+        }
+        else if (long.TryParse(attachmentUrl, out var id))
+        {
+            // It's an attachment ID
+            return await DownloadAttachmentByIdAsync(id, cancellationToken);
+        }
+        else
+        {
+            throw new ArgumentException($"Invalid attachment URL or ID: {attachmentUrl}");
+        }
+    }
+
+    public async Task<byte[]> DownloadAttachmentByIdAsync(long attachmentId, CancellationToken cancellationToken = default)
+    {
+        // Use the direct attachment API endpoint
+        var requestUrl = $"/api/v2/attachments/{attachmentId}";
+        var response = await _httpClient.GetAsync(requestUrl, cancellationToken);
+        response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsByteArrayAsync(cancellationToken);
     }
 
