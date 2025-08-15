@@ -72,7 +72,7 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
     public async Task<Ticket[]> GetTicketsAsync(int page = 1, int perPage = 30, TicketStatus? status = null, string? email = null, CancellationToken cancellationToken = default)
     {
         long? requesterId = null;
-        
+
         if (!string.IsNullOrWhiteSpace(email))
         {
             var contacts = await SearchContactsByEmailAsync(email, cancellationToken);
@@ -85,68 +85,68 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
                 return [];
             }
         }
-        
+
         // Use search API for status filtering
         if (status.HasValue)
         {
             var query = $"status:{(int)status.Value}";
             var endpoint = $"/api/v2/search/tickets?query=\"{Uri.EscapeDataString(query)}\"&page={page}";
-            
+
             var response = await _httpClient.GetAsync(endpoint, cancellationToken);
             response.EnsureSuccessStatusCode();
-            
+
             var json = await response.Content.ReadAsStringAsync(cancellationToken);
             var searchResult = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.TicketSearchResult);
             var searchTickets = searchResult?.Results ?? [];
-            
+
             // Apply requester filter client-side if needed
             if (requesterId.HasValue)
             {
                 searchTickets = searchTickets.Where(t => t.RequesterId == requesterId.Value).ToArray();
             }
-            
+
             return searchTickets;
         }
-        
+
         // Use regular tickets endpoint with requester_id parameter
         var queryParams = new List<string>
         {
             $"page={page}",
             $"per_page={perPage}"
         };
-        
+
         if (requesterId.HasValue)
         {
             queryParams.Add($"requester_id={requesterId.Value}");
         }
-        
+
         var ticketsResponse = await _httpClient.GetAsync($"/api/v2/tickets?{string.Join("&", queryParams)}", cancellationToken);
         ticketsResponse.EnsureSuccessStatusCode();
 
         var ticketsJson = await ticketsResponse.Content.ReadAsStringAsync(cancellationToken);
         var tickets = JsonSerializer.Deserialize(ticketsJson, FreshdeskJsonContext.Default.TicketArray) ?? [];
-        
+
         return tickets;
     }
-    
+
     private async Task<Contact[]> SearchContactsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync($"/api/v2/contacts?email={Uri.EscapeDataString(email)}", cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
             return [];
-            
+
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ContactArray) ?? [];
     }
-    
+
     public async Task<Contact?> GetContactAsync(long contactId, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync($"/api/v2/contacts/{contactId}", cancellationToken);
-        
+
         if (response.StatusCode == HttpStatusCode.NotFound)
             return null;
-            
+
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.Contact);
