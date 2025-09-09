@@ -19,7 +19,7 @@
   <!-- SourceLink support for all Akka.NET projects -->
   <ItemGroup>
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.9" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
     <PackageVersion Include="System.CommandLine" Version="2.0.0-beta7.25380.108" />
     <PackageVersion Include="System.Threading.RateLimiting" Version="9.0.8" />
