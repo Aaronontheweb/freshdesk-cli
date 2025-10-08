@@ -868,7 +868,7 @@ static async Task<int> HandleTicketReply(string[] args, FreshdeskCLI.Services.Fr
             Console.WriteLine($"File not found: {filePath}");
             return 1;
         }
-        message = await File.ReadAllTextAsync(filePath);
+        message = NormalizeLineEndings(await File.ReadAllTextAsync(filePath));
     }
 
     // If no message provided, prompt for it
@@ -948,7 +948,7 @@ static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.Fre
             Console.WriteLine($"File not found: {filePath}");
             return 1;
         }
-        message = await File.ReadAllTextAsync(filePath);
+        message = NormalizeLineEndings(await File.ReadAllTextAsync(filePath));
     }
 
     // If no message provided, prompt for it
@@ -984,6 +984,11 @@ static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.Fre
         Console.Error.WriteLine($"Failed to add note: {ex.Message}");
         return 1;
     }
+}
+
+static string NormalizeLineEndings(string text)
+{
+    return text.Replace("\r\n", "\n").Replace("\r", "\n");
 }
 
 static void TestAotCompatibility()
