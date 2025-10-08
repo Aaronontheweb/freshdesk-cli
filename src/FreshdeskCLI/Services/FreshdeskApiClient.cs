@@ -195,11 +195,31 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
 
     public async Task<Conversation[]> GetTicketConversationsAsync(long ticketId, CancellationToken cancellationToken = default)
     {
-        var response = await _httpClient.GetAsync($"/api/v2/tickets/{ticketId}/conversations", cancellationToken);
-        response.EnsureSuccessStatusCode();
+        var allConversations = new List<Conversation>();
+        var page = 1;
+        const int perPage = 100;
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ConversationArray) ?? [];
+        while (true)
+        {
+            var endpoint = $"/api/v2/tickets/{ticketId}/conversations?page={page}&per_page={perPage}";
+            var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            var conversations = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ConversationArray) ?? [];
+
+            if (conversations.Length == 0)
+                break;
+
+            allConversations.AddRange(conversations);
+
+            if (conversations.Length < perPage)
+                break;
+
+            page++;
+        }
+
+        return [.. allConversations];
     }
 
     public async Task<Conversation> ReplyToTicketAsync(long ticketId, string body, bool isPrivate = false, CancellationToken cancellationToken = default)

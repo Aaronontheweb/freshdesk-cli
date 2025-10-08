@@ -63,10 +63,10 @@ jobs:
             runtime: win-x64
             max-size-mb: 15
           - os: macos-latest
-            runtime: osx-x64
+            runtime: osx-arm64
             max-size-mb: 15
-          # Note: Cross-compilation for ARM64 requires special setup
-          # For now, we'll only validate native builds on CI
+          # Note: Cross-compilation requires special setup
+          # Using native architecture for each OS
 
     steps:
       - name: "Checkout"
