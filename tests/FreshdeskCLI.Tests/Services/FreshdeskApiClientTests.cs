@@ -291,7 +291,7 @@ public class FreshdeskApiClientTests
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery == "/api/v2/tickets/123/conversations"),
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.StartsWith("/api/v2/tickets/123/conversations")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -308,6 +308,63 @@ public class FreshdeskApiClientTests
         Assert.Equal("First message", result[0].Body);
         Assert.False(result[0].Private);
         Assert.True(result[0].Incoming);
+    }
+
+    [Fact]
+    public async Task GetTicketConversationsAsync_FetchesAllPages()
+    {
+        // Arrange - simulate multiple pages of conversations
+        var page1Conversations = Enumerable.Range(1, 100).Select(i => new Conversation
+        {
+            Id = i,
+            Body = $"Message {i}",
+            Private = false,
+            Incoming = i % 2 == 0
+        }).ToArray();
+
+        var page2Conversations = Enumerable.Range(101, 50).Select(i => new Conversation
+        {
+            Id = i,
+            Body = $"Message {i}",
+            Private = false,
+            Incoming = i % 2 == 0
+        }).ToArray();
+
+        var page1Json = JsonSerializer.Serialize(page1Conversations, FreshdeskJsonContext.Default.ConversationArray);
+        var page2Json = JsonSerializer.Serialize(page2Conversations, FreshdeskJsonContext.Default.ConversationArray);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains("page=1")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(page1Json)
+            });
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains("page=2")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(page2Json)
+            });
+
+        // Act
+        var result = await _client.GetTicketConversationsAsync(123);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(150, result.Length);
+        Assert.Equal("Message 1", result[0].Body);
+        Assert.Equal("Message 150", result[149].Body);
     }
 
     [Fact]
