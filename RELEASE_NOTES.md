@@ -1,3 +1,37 @@
+#### 1.2.0 October 8th 2025 ####
+
+**Bug Fix Release**
+
+This release fixes critical issues with conversation retrieval and file content handling.
+
+**Bug Fixes:**
+- **Fixed Line Ending Normalization** (#71)
+  - Properly normalize line endings when reading reply/note content from files
+  - Ensures consistent behavior across different operating systems
+  - Prevents formatting issues in ticket conversations
+
+- **Fixed Conversation Pagination** (#70)
+  - Implemented proper pagination for ticket conversations
+  - Now retrieves complete conversation history regardless of length
+  - Prevents missing messages in tickets with many replies
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.1.2 August 15th 2025 ####
 
 **Feature Release**
