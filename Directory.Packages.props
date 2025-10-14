@@ -22,7 +22,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftNetVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftNetVersion)" />
     <PackageVersion Include="Microsoft.SourceLink.GitHub" Version="8.0.0" />
-    <PackageVersion Include="System.CommandLine" Version="2.0.0-beta7.25380.108" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.0-rc.1.25451.107" />
     <PackageVersion Include="System.Threading.RateLimiting" Version="$(MicrosoftNetVersion)" />
   </ItemGroup>
 </Project>
