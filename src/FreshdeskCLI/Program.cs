@@ -2071,50 +2071,62 @@ static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.
         return CommandHelp.ShowHelpAndReturn("contact", "create");
     }
 
-    var contact = new Contact();
+    var contactData = new Dictionary<string, object>();
+    var customFields = new Dictionary<string, object>();
 
     for (int i = 0; i < args.Length; i++)
     {
         switch (args[i])
         {
             case "--name" when i + 1 < args.Length:
-                contact.Name = args[++i];
+                contactData["name"] = args[++i];
                 break;
             case "--email" when i + 1 < args.Length:
-                contact.Email = args[++i];
+                contactData["email"] = args[++i];
                 break;
             case "--phone" when i + 1 < args.Length:
-                contact.Phone = args[++i];
+                contactData["phone"] = args[++i];
                 break;
             case "--mobile" when i + 1 < args.Length:
-                contact.Mobile = args[++i];
+                contactData["mobile"] = args[++i];
                 break;
             case "--job-title" when i + 1 < args.Length:
-                contact.JobTitle = args[++i];
+                contactData["job_title"] = args[++i];
                 break;
             case "--company-id" when i + 1 < args.Length && long.TryParse(args[i + 1], out var cid):
-                contact.CompanyId = cid;
+                contactData["company_id"] = cid;
                 i++;
                 break;
             case "--view-all-tickets":
-                contact.ViewAllTickets = true;
+                contactData["view_all_tickets"] = true;
                 break;
             case "--description" when i + 1 < args.Length:
-                contact.Description = args[++i];
+                contactData["description"] = args[++i];
                 break;
             case "--address" when i + 1 < args.Length:
-                contact.Address = args[++i];
+                contactData["address"] = args[++i];
+                break;
+            case "--custom-field" when i + 1 < args.Length:
+                var customField = args[++i];
+                var parts = customField.Split('=', 2);
+                if (parts.Length == 2)
+                {
+                    customFields[parts[0]] = parts[1];
+                }
                 break;
         }
     }
 
-    if (string.IsNullOrWhiteSpace(contact.Name) || string.IsNullOrWhiteSpace(contact.Email))
+    if (customFields.Count > 0)
+        contactData["custom_fields"] = customFields;
+
+    if (!contactData.ContainsKey("name") || !contactData.ContainsKey("email"))
     {
         Console.WriteLine("Error: --name and --email are required.");
         return 1;
     }
 
-    var created = await client.CreateContactAsync(contact);
+    var created = await client.CreateContactAsync(contactData);
     Console.WriteLine($"✓ Contact created successfully!");
     OutputFormatter.PrintContactDetails(created);
     return 0;
@@ -2133,45 +2145,47 @@ static async Task<int> HandleContactUpdate(string[] args, FreshdeskCLI.Services.
         return 1;
     }
 
-    var contact = new Contact();
-    bool? viewAllTickets = null;
+    var updates = new Dictionary<string, object>();
 
     for (int i = 1; i < args.Length; i++)
     {
         switch (args[i])
         {
             case "--name" when i + 1 < args.Length:
-                contact.Name = args[++i];
+                updates["name"] = args[++i];
                 break;
             case "--email" when i + 1 < args.Length:
-                contact.Email = args[++i];
+                updates["email"] = args[++i];
                 break;
             case "--phone" when i + 1 < args.Length:
-                contact.Phone = args[++i];
+                updates["phone"] = args[++i];
                 break;
             case "--mobile" when i + 1 < args.Length:
-                contact.Mobile = args[++i];
+                updates["mobile"] = args[++i];
                 break;
             case "--job-title" when i + 1 < args.Length:
-                contact.JobTitle = args[++i];
+                updates["job_title"] = args[++i];
                 break;
             case "--company-id" when i + 1 < args.Length && long.TryParse(args[i + 1], out var cid):
-                contact.CompanyId = cid;
+                updates["company_id"] = cid;
                 i++;
                 break;
             case "--view-all-tickets" when i + 1 < args.Length:
-                viewAllTickets = bool.Parse(args[++i]);
+                updates["view_all_tickets"] = bool.Parse(args[++i]);
                 break;
             case "--description" when i + 1 < args.Length:
-                contact.Description = args[++i];
+                updates["description"] = args[++i];
                 break;
         }
     }
 
-    if (viewAllTickets.HasValue)
-        contact.ViewAllTickets = viewAllTickets.Value;
+    if (updates.Count == 0)
+    {
+        Console.WriteLine("Error: No fields to update. Provide at least one field to update.");
+        return 1;
+    }
 
-    var updated = await client.UpdateContactAsync(contactId, contact);
+    var updated = await client.UpdateContactAsync(contactId, updates);
     Console.WriteLine($"✓ Contact updated successfully!");
     OutputFormatter.PrintContactDetails(updated);
     return 0;
@@ -2340,44 +2354,56 @@ static async Task<int> HandleCompanyCreate(string[] args, FreshdeskCLI.Services.
         return CommandHelp.ShowHelpAndReturn("company", "create");
     }
 
-    var company = new Company();
+    var companyData = new Dictionary<string, object>();
     var domainsList = new List<string>();
+    var customFields = new Dictionary<string, object>();
 
     for (int i = 0; i < args.Length; i++)
     {
         switch (args[i])
         {
             case "--name" when i + 1 < args.Length:
-                company.Name = args[++i];
+                companyData["name"] = args[++i];
                 break;
             case "--description" when i + 1 < args.Length:
-                company.Description = args[++i];
+                companyData["description"] = args[++i];
                 break;
             case "--domains" when i + 1 < args.Length:
                 domainsList.AddRange(args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
                 break;
             case "--industry" when i + 1 < args.Length:
-                company.Industry = args[++i];
+                companyData["industry"] = args[++i];
                 break;
             case "--health-score" when i + 1 < args.Length:
-                company.HealthScore = args[++i];
+                companyData["health_score"] = args[++i];
                 break;
             case "--note" when i + 1 < args.Length:
-                company.Note = args[++i];
+                companyData["note"] = args[++i];
+                break;
+            case "--custom-field" when i + 1 < args.Length:
+                var customField = args[++i];
+                var parts = customField.Split('=', 2);
+                if (parts.Length == 2)
+                {
+                    customFields[parts[0]] = parts[1];
+                }
                 break;
         }
     }
 
     if (domainsList.Count > 0)
-        company.Domains = [.. domainsList];
+        companyData["domains"] = domainsList.ToArray();
 
-    if (string.IsNullOrWhiteSpace(company.Name))
+    if (customFields.Count > 0)
+        companyData["custom_fields"] = customFields;
+
+    if (!companyData.ContainsKey("name"))
     {
         Console.WriteLine("Error: --name is required.");
         return 1;
     }
 
-    var created = await client.CreateCompanyAsync(company);
+    var created = await client.CreateCompanyAsync(companyData);
     Console.WriteLine($"✓ Company created successfully!");
     OutputFormatter.PrintCompanyDetails(created);
     return 0;
@@ -2396,7 +2422,7 @@ static async Task<int> HandleCompanyUpdate(string[] args, FreshdeskCLI.Services.
         return 1;
     }
 
-    var company = new Company();
+    var updates = new Dictionary<string, object>();
     var domainsList = new List<string>();
 
     for (int i = 1; i < args.Length; i++)
@@ -2404,27 +2430,33 @@ static async Task<int> HandleCompanyUpdate(string[] args, FreshdeskCLI.Services.
         switch (args[i])
         {
             case "--name" when i + 1 < args.Length:
-                company.Name = args[++i];
+                updates["name"] = args[++i];
                 break;
             case "--description" when i + 1 < args.Length:
-                company.Description = args[++i];
+                updates["description"] = args[++i];
                 break;
             case "--domains" when i + 1 < args.Length:
                 domainsList.AddRange(args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
                 break;
             case "--industry" when i + 1 < args.Length:
-                company.Industry = args[++i];
+                updates["industry"] = args[++i];
                 break;
             case "--health-score" when i + 1 < args.Length:
-                company.HealthScore = args[++i];
+                updates["health_score"] = args[++i];
                 break;
         }
     }
 
     if (domainsList.Count > 0)
-        company.Domains = [.. domainsList];
+        updates["domains"] = domainsList.ToArray();
 
-    var updated = await client.UpdateCompanyAsync(companyId, company);
+    if (updates.Count == 0)
+    {
+        Console.WriteLine("Error: No fields to update. Provide at least one field to update.");
+        return 1;
+    }
+
+    var updated = await client.UpdateCompanyAsync(companyId, updates);
     Console.WriteLine($"✓ Company updated successfully!");
     OutputFormatter.PrintCompanyDetails(updated);
     return 0;

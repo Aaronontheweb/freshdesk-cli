@@ -21,15 +21,15 @@ public interface IFreshdeskApiClient
 
     Task<Contact[]> GetContactsAsync(int page = 1, int limit = 30, CancellationToken cancellationToken = default);
     Task<Contact?> GetContactAsync(long id, CancellationToken cancellationToken = default);
-    Task<Contact> CreateContactAsync(Contact contact, CancellationToken cancellationToken = default);
-    Task<Contact> UpdateContactAsync(long id, Contact contact, CancellationToken cancellationToken = default);
+    Task<Contact> CreateContactAsync(Dictionary<string, object> contactData, CancellationToken cancellationToken = default);
+    Task<Contact> UpdateContactAsync(long id, Dictionary<string, object> updates, CancellationToken cancellationToken = default);
     Task<Contact[]> SearchContactsAsync(string? email = null, string? phone = null, CancellationToken cancellationToken = default);
     Task DeleteContactAsync(long id, CancellationToken cancellationToken = default);
 
     Task<Company[]> GetCompaniesAsync(int page = 1, int limit = 30, CancellationToken cancellationToken = default);
     Task<Company?> GetCompanyAsync(long id, CancellationToken cancellationToken = default);
-    Task<Company> CreateCompanyAsync(Company company, CancellationToken cancellationToken = default);
-    Task<Company> UpdateCompanyAsync(long id, Company company, CancellationToken cancellationToken = default);
+    Task<Company> CreateCompanyAsync(Dictionary<string, object> companyData, CancellationToken cancellationToken = default);
+    Task<Company> UpdateCompanyAsync(long id, Dictionary<string, object> updates, CancellationToken cancellationToken = default);
     Task<Company[]> SearchCompaniesAsync(string name, CancellationToken cancellationToken = default);
     Task DeleteCompanyAsync(long id, CancellationToken cancellationToken = default);
 }
@@ -417,24 +417,36 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
         return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ContactArray) ?? [];
     }
 
-    public async Task<Contact> CreateContactAsync(Contact contact, CancellationToken cancellationToken = default)
+    public async Task<Contact> CreateContactAsync(Dictionary<string, object> contactData, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(contact);
-        var json = JsonSerializer.Serialize(contact, FreshdeskJsonContext.Default.Contact);
+        ArgumentNullException.ThrowIfNull(contactData);
+        var json = JsonSerializer.Serialize(contactData, FreshdeskJsonContext.Default.DictionaryStringObject);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await _httpClient.PostAsync("/api/v2/contacts", content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException($"Failed to create contact. Status: {response.StatusCode}, Error: {errorBody}");
+        }
+
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize(responseJson, FreshdeskJsonContext.Default.Contact)!;
     }
 
-    public async Task<Contact> UpdateContactAsync(long id, Contact contact, CancellationToken cancellationToken = default)
+    public async Task<Contact> UpdateContactAsync(long id, Dictionary<string, object> updates, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(contact);
-        var json = JsonSerializer.Serialize(contact, FreshdeskJsonContext.Default.Contact);
+        ArgumentNullException.ThrowIfNull(updates);
+        var json = JsonSerializer.Serialize(updates, FreshdeskJsonContext.Default.DictionaryStringObject);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await _httpClient.PutAsync($"/api/v2/contacts/{id}", content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException($"Failed to update contact. Status: {response.StatusCode}, Error: {errorBody}");
+        }
+
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize(responseJson, FreshdeskJsonContext.Default.Contact)!;
     }
@@ -484,24 +496,36 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
         return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.Company);
     }
 
-    public async Task<Company> CreateCompanyAsync(Company company, CancellationToken cancellationToken = default)
+    public async Task<Company> CreateCompanyAsync(Dictionary<string, object> companyData, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(company);
-        var json = JsonSerializer.Serialize(company, FreshdeskJsonContext.Default.Company);
+        ArgumentNullException.ThrowIfNull(companyData);
+        var json = JsonSerializer.Serialize(companyData, FreshdeskJsonContext.Default.DictionaryStringObject);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await _httpClient.PostAsync("/api/v2/companies", content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException($"Failed to create company. Status: {response.StatusCode}, Error: {errorBody}");
+        }
+
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize(responseJson, FreshdeskJsonContext.Default.Company)!;
     }
 
-    public async Task<Company> UpdateCompanyAsync(long id, Company company, CancellationToken cancellationToken = default)
+    public async Task<Company> UpdateCompanyAsync(long id, Dictionary<string, object> updates, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(company);
-        var json = JsonSerializer.Serialize(company, FreshdeskJsonContext.Default.Company);
+        ArgumentNullException.ThrowIfNull(updates);
+        var json = JsonSerializer.Serialize(updates, FreshdeskJsonContext.Default.DictionaryStringObject);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var response = await _httpClient.PutAsync($"/api/v2/companies/{id}", content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException($"Failed to update company. Status: {response.StatusCode}, Error: {errorBody}");
+        }
+
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize(responseJson, FreshdeskJsonContext.Default.Company)!;
     }
