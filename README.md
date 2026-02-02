@@ -7,6 +7,8 @@ A fast, lightweight command-line interface for [Freshdesk](https://www.freshwork
 - 🚀 **Fast & Lightweight** - Native AOT compilation for instant startup and small binary size (~3-5MB)
 - 🔒 **Read-Only Mode** - Safe exploration mode that prevents accidental modifications
 - 📊 **Multiple Output Formats** - Table (human-readable), JSON, CSV, XML, and Markdown formats
+- 👥 **Contact & Company Management** - Full CRUD operations for contacts and organizations
+- 🎫 **Ticket Management** - Create, update, search, and manage support tickets
 - 📤 **Export Functionality** - Export tickets and conversations to multiple formats
 - 📥 **Bulk Downloads** - Download all attachments from tickets with progress indicators
 - 🔐 **Secure Credential Storage** - File-based with proper permissions and environment variable support
@@ -252,6 +254,202 @@ freshdesk ticket note 123 --file internal-notes.txt
 freshdesk ticket note 123
 ```
 
+### Contact Operations
+
+#### List Contacts
+
+```bash
+# List contacts (default format: table)
+freshdesk contact list
+
+# With pagination
+freshdesk contact list --page 2 --limit 50
+
+# Export as JSON or CSV
+freshdesk contact list --format json
+freshdesk contact list --format csv > contacts.csv
+```
+
+#### Get Contact Details
+
+```bash
+# View contact details
+freshdesk contact get 12345
+
+# Get as JSON
+freshdesk contact get 12345 --format json
+```
+
+#### Create Contact
+
+```bash
+# Create a new contact
+freshdesk contact create \
+  --name "John Doe" \
+  --email "john@example.com"
+
+# Create contact in a company
+freshdesk contact create \
+  --name "Jane Smith" \
+  --email "jane@example.com" \
+  --company-id 67890
+
+# Create contact who can view all company tickets
+freshdesk contact create \
+  --name "Support Manager" \
+  --email "support@company.com" \
+  --company-id 67890 \
+  --view-all-tickets
+
+# Create with additional details
+freshdesk contact create \
+  --name "John Doe" \
+  --email "john@example.com" \
+  --phone "555-1234" \
+  --mobile "555-5678" \
+  --job-title "Engineering Manager" \
+  --company-id 67890 \
+  --view-all-tickets
+
+# Create with custom fields
+freshdesk contact create \
+  --name "VIP Customer" \
+  --email "vip@example.com" \
+  --custom-field account_tier="Premium"
+```
+
+#### Update Contact
+
+```bash
+# Enable view all tickets for a contact
+freshdesk contact update 12345 --view-all-tickets true
+
+# Update contact details
+freshdesk contact update 12345 \
+  --name "John Smith" \
+  --job-title "Senior Engineer"
+
+# Associate contact with a company
+freshdesk contact update 12345 --company-id 67890
+
+# Disable view all tickets
+freshdesk contact update 12345 --view-all-tickets false
+```
+
+#### Search Contacts
+
+```bash
+# Search by email
+freshdesk contact search --email john@example.com
+
+# Search by phone
+freshdesk contact search --phone 555-1234
+
+# Export search results
+freshdesk contact search --email john@example.com --format json
+```
+
+#### Delete Contact
+
+```bash
+# Delete a contact
+freshdesk contact delete 12345
+```
+
+### Company Operations
+
+#### List Companies
+
+```bash
+# List companies (default format: table)
+freshdesk company list
+
+# With pagination
+freshdesk company list --page 2 --limit 50
+
+# Export as JSON or CSV
+freshdesk company list --format json
+freshdesk company list --format csv > companies.csv
+```
+
+#### Get Company Details
+
+```bash
+# View company details
+freshdesk company get 67890
+
+# Get as JSON
+freshdesk company get 67890 --format json
+```
+
+#### Create Company
+
+```bash
+# Create a basic company
+freshdesk company create --name "Acme Corporation"
+
+# Create with description and industry
+freshdesk company create \
+  --name "Tech Startup Inc" \
+  --description "Cloud services provider" \
+  --industry "Technology"
+
+# Create with domains
+freshdesk company create \
+  --name "Example Corp" \
+  --domains example.com,example.net
+
+# Create with custom fields (e.g., support plan)
+freshdesk company create \
+  --name "Premium Customer" \
+  --description "VIP account" \
+  --custom-field support_plan="Enterprise Support"
+
+# Create with multiple options
+freshdesk company create \
+  --name "Global Enterprises" \
+  --description "Multinational corporation" \
+  --industry "Finance" \
+  --domains globalent.com,globalent.net \
+  --health-score "Healthy" \
+  --custom-field support_plan="Premium Support"
+```
+
+#### Update Company
+
+```bash
+# Update company name
+freshdesk company update 67890 --name "New Company Name"
+
+# Update description and industry
+freshdesk company update 67890 \
+  --description "Updated description" \
+  --industry "Healthcare"
+
+# Update domains
+freshdesk company update 67890 --domains newdomain.com,example.com
+
+# Update health score
+freshdesk company update 67890 --health-score "At Risk"
+```
+
+#### Search Companies
+
+```bash
+# Search by name
+freshdesk company search "Acme"
+
+# Export search results
+freshdesk company search "Tech" --format json
+```
+
+#### Delete Company
+
+```bash
+# Delete a company
+freshdesk company delete 67890
+```
+
 ### Export Operations
 
 ```bash
@@ -363,6 +561,28 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 | `ticket reply <id>` | Reply to a ticket |
 | `ticket note <id>` | Add internal note to a ticket |
 | `ticket export` | Export tickets to JSON/CSV/XML/Markdown |
+
+### Contact Commands
+
+| Command | Description |
+|---------|-------------|
+| `contact list` | List contacts with pagination |
+| `contact get <id>` | Get contact details |
+| `contact create` | Create a new contact |
+| `contact update <id>` | Update contact details |
+| `contact search` | Search contacts by email or phone |
+| `contact delete <id>` | Delete a contact |
+
+### Company Commands
+
+| Command | Description |
+|---------|-------------|
+| `company list` | List companies with pagination |
+| `company get <id>` | Get company details |
+| `company create` | Create a new company |
+| `company update <id>` | Update company details |
+| `company search <name>` | Search companies by name |
+| `company delete <id>` | Delete a company |
 
 ### Attachment Commands
 
@@ -526,8 +746,9 @@ echo $PATH
 - [x] Bulk download operations
 - [x] Progress indicators for long operations
 - [x] Export functionality (JSON/CSV/XML/Markdown)
-- [ ] Conversation management
-- [ ] Tab completion support
+- [x] Contact and company management
+- [x] Tab completion support
+- [ ] Ticket conversation thread management
 - [ ] Interactive mode
 - [ ] Webhook support
 - [ ] Advanced filtering and sorting

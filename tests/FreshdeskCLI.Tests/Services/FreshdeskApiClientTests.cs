@@ -399,4 +399,487 @@ public class FreshdeskApiClientTests
         client.Dispose();
         client.Dispose(); // Second dispose should also not throw
     }
+
+    [Fact]
+    public async Task GetContactsAsync_ReturnsContactsArray()
+    {
+        // Arrange
+        var contacts = new[]
+        {
+            new Contact { Id = 1, Name = "John Doe", Email = "john@example.com", CompanyId = 100, ViewAllTickets = true },
+            new Contact { Id = 2, Name = "Jane Smith", Email = "jane@example.com", CompanyId = 100, ViewAllTickets = false }
+        };
+
+        var json = JsonSerializer.Serialize(contacts, FreshdeskJsonContext.Default.ContactArray);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains("/api/v2/contacts")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(json)
+            });
+
+        // Act
+        var result = await _client.GetContactsAsync();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Length);
+        Assert.Equal("John Doe", result[0].Name);
+        Assert.True(result[0].ViewAllTickets);
+        Assert.Equal(100, result[0].CompanyId);
+    }
+
+    [Fact]
+    public async Task GetContactAsync_ReturnsContact_WhenFound()
+    {
+        // Arrange
+        var contact = new Contact
+        {
+            Id = 123,
+            Name = "Test Contact",
+            Email = "test@example.com",
+            CompanyId = 456,
+            ViewAllTickets = true,
+            Active = true
+        };
+
+        var json = JsonSerializer.Serialize(contact, FreshdeskJsonContext.Default.Contact);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery == "/api/v2/contacts/123"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(json)
+            });
+
+        // Act
+        var result = await _client.GetContactAsync(123);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(123, result.Id);
+        Assert.Equal("Test Contact", result.Name);
+        Assert.True(result.ViewAllTickets);
+    }
+
+    [Fact]
+    public async Task GetContactAsync_ReturnsNull_WhenNotFound()
+    {
+        // Arrange
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery == "/api/v2/contacts/999"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.NotFound
+            });
+
+        // Act
+        var result = await _client.GetContactAsync(999);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task CreateContactAsync_SendsCorrectRequest()
+    {
+        // Arrange
+        var newContact = new Dictionary<string, object>
+        {
+            ["name"] = "New Contact",
+            ["email"] = "new@example.com",
+            ["company_id"] = 789L,
+            ["view_all_tickets"] = true,
+            ["phone"] = "555-1234"
+        };
+
+        var createdContact = new Contact
+        {
+            Id = 101,
+            Name = "New Contact",
+            Email = "new@example.com",
+            CompanyId = 789,
+            ViewAllTickets = true,
+            Phone = "555-1234",
+            Active = true,
+            CreatedAt = DateTimeOffset.Now
+        };
+
+        var responseJson = JsonSerializer.Serialize(createdContact, FreshdeskJsonContext.Default.Contact);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Post &&
+                    req.RequestUri!.PathAndQuery == "/api/v2/contacts"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.Created,
+                Content = new StringContent(responseJson)
+            });
+
+        // Act
+        var result = await _client.CreateContactAsync(newContact);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(101, result.Id);
+        Assert.Equal("New Contact", result.Name);
+        Assert.True(result.ViewAllTickets);
+        Assert.Equal(789, result.CompanyId);
+    }
+
+    [Fact]
+    public async Task UpdateContactAsync_SendsCorrectRequest()
+    {
+        // Arrange
+        var updates = new Dictionary<string, object>
+        {
+            ["name"] = "Updated Contact",
+            ["view_all_tickets"] = false
+        };
+
+        var updatedContact = new Contact
+        {
+            Id = 202,
+            Name = "Updated Contact",
+            Email = "updated@example.com",
+            ViewAllTickets = false,
+            UpdatedAt = DateTimeOffset.Now
+        };
+
+        var responseJson = JsonSerializer.Serialize(updatedContact, FreshdeskJsonContext.Default.Contact);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Put &&
+                    req.RequestUri!.PathAndQuery == "/api/v2/contacts/202"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseJson)
+            });
+
+        // Act
+        var result = await _client.UpdateContactAsync(202, updates);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(202, result.Id);
+        Assert.Equal("Updated Contact", result.Name);
+        Assert.False(result.ViewAllTickets);
+    }
+
+    [Fact]
+    public async Task SearchContactsAsync_ByEmail_ReturnsContacts()
+    {
+        // Arrange
+        var contacts = new[]
+        {
+            new Contact { Id = 1, Name = "John Doe", Email = "john@example.com" }
+        };
+
+        var json = JsonSerializer.Serialize(contacts, FreshdeskJsonContext.Default.ContactArray);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains("email=john%40example.com")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(json)
+            });
+
+        // Act
+        var result = await _client.SearchContactsAsync(email: "john@example.com");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Equal("john@example.com", result[0].Email);
+    }
+
+    [Fact]
+    public async Task DeleteContactAsync_SendsCorrectRequest()
+    {
+        // Arrange
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Delete &&
+                    req.RequestUri!.PathAndQuery == "/api/v2/contacts/303"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.NoContent
+            });
+
+        // Act & Assert - should not throw
+        await _client.DeleteContactAsync(303);
+    }
+
+    [Fact]
+    public async Task GetCompaniesAsync_ReturnsCompaniesArray()
+    {
+        // Arrange
+        var companies = new[]
+        {
+            new Company { Id = 1, Name = "Acme Corp", Industry = "Technology", Domains = new[] { "acme.com" } },
+            new Company { Id = 2, Name = "Widget Inc", Industry = "Manufacturing", Domains = new[] { "widget.com" } }
+        };
+
+        var json = JsonSerializer.Serialize(companies, FreshdeskJsonContext.Default.CompanyArray);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains("/api/v2/companies")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(json)
+            });
+
+        // Act
+        var result = await _client.GetCompaniesAsync();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Length);
+        Assert.Equal("Acme Corp", result[0].Name);
+        Assert.Equal("Technology", result[0].Industry);
+    }
+
+    [Fact]
+    public async Task GetCompanyAsync_ReturnsCompany_WhenFound()
+    {
+        // Arrange
+        var company = new Company
+        {
+            Id = 123,
+            Name = "Test Company",
+            Description = "Test Description",
+            Industry = "Technology",
+            Domains = new[] { "test.com", "example.com" }
+        };
+
+        var json = JsonSerializer.Serialize(company, FreshdeskJsonContext.Default.Company);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery == "/api/v2/companies/123"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(json)
+            });
+
+        // Act
+        var result = await _client.GetCompanyAsync(123);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(123, result.Id);
+        Assert.Equal("Test Company", result.Name);
+        Assert.Equal(2, result.Domains!.Length);
+    }
+
+    [Fact]
+    public async Task GetCompanyAsync_ReturnsNull_WhenNotFound()
+    {
+        // Arrange
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery == "/api/v2/companies/999"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.NotFound
+            });
+
+        // Act
+        var result = await _client.GetCompanyAsync(999);
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task CreateCompanyAsync_SendsCorrectRequest()
+    {
+        // Arrange
+        var newCompany = new Dictionary<string, object>
+        {
+            ["name"] = "New Company",
+            ["description"] = "A new company",
+            ["industry"] = "Technology",
+            ["domains"] = new[] { "newco.com" }
+        };
+
+        var createdCompany = new Company
+        {
+            Id = 101,
+            Name = "New Company",
+            Description = "A new company",
+            Industry = "Technology",
+            Domains = new[] { "newco.com" },
+            CreatedAt = DateTimeOffset.Now
+        };
+
+        var responseJson = JsonSerializer.Serialize(createdCompany, FreshdeskJsonContext.Default.Company);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Post &&
+                    req.RequestUri!.PathAndQuery == "/api/v2/companies"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.Created,
+                Content = new StringContent(responseJson)
+            });
+
+        // Act
+        var result = await _client.CreateCompanyAsync(newCompany);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(101, result.Id);
+        Assert.Equal("New Company", result.Name);
+        Assert.Equal("Technology", result.Industry);
+    }
+
+    [Fact]
+    public async Task UpdateCompanyAsync_SendsCorrectRequest()
+    {
+        // Arrange
+        var updates = new Dictionary<string, object>
+        {
+            ["name"] = "Updated Company",
+            ["industry"] = "Finance"
+        };
+
+        var updatedCompany = new Company
+        {
+            Id = 202,
+            Name = "Updated Company",
+            Industry = "Finance",
+            UpdatedAt = DateTimeOffset.Now
+        };
+
+        var responseJson = JsonSerializer.Serialize(updatedCompany, FreshdeskJsonContext.Default.Company);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Put &&
+                    req.RequestUri!.PathAndQuery == "/api/v2/companies/202"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseJson)
+            });
+
+        // Act
+        var result = await _client.UpdateCompanyAsync(202, updates);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(202, result.Id);
+        Assert.Equal("Updated Company", result.Name);
+        Assert.Equal("Finance", result.Industry);
+    }
+
+    [Fact]
+    public async Task SearchCompaniesAsync_ReturnsCompanies()
+    {
+        // Arrange
+        var companies = new[]
+        {
+            new Company { Id = 1, Name = "Acme Corp", Industry = "Technology" }
+        };
+
+        var json = JsonSerializer.Serialize(companies, FreshdeskJsonContext.Default.CompanyArray);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains("name=Acme")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(json)
+            });
+
+        // Act
+        var result = await _client.SearchCompaniesAsync("Acme");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Equal("Acme Corp", result[0].Name);
+    }
+
+    [Fact]
+    public async Task DeleteCompanyAsync_SendsCorrectRequest()
+    {
+        // Arrange
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Delete &&
+                    req.RequestUri!.PathAndQuery == "/api/v2/companies/303"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.NoContent
+            });
+
+        // Act & Assert - should not throw
+        await _client.DeleteCompanyAsync(303);
+    }
 }

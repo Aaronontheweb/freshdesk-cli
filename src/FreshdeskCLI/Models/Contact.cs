@@ -16,6 +16,8 @@ public sealed class Contact
     public bool Active { get; set; }
     public string Language { get; set; } = "en";
     public string? TimeZone { get; set; }
+    public bool ViewAllTickets { get; set; }
+    public CompanyAssociation[]? OtherCompanies { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
