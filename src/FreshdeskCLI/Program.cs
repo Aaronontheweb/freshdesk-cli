@@ -144,6 +144,18 @@ static void ShowHelp(string? versionInfo = null)
     Console.WriteLine("  ticket search     Search tickets");
     Console.WriteLine("  ticket reply      Reply to a ticket");
     Console.WriteLine("  ticket note       Add internal note to a ticket");
+    Console.WriteLine("  contact list      List contacts");
+    Console.WriteLine("  contact get       Get contact details");
+    Console.WriteLine("  contact create    Create a new contact");
+    Console.WriteLine("  contact update    Update a contact");
+    Console.WriteLine("  contact search    Search for contacts");
+    Console.WriteLine("  contact delete    Delete a contact");
+    Console.WriteLine("  company list      List companies");
+    Console.WriteLine("  company get       Get company details");
+    Console.WriteLine("  company create    Create a new company");
+    Console.WriteLine("  company update    Update a company");
+    Console.WriteLine("  company search    Search for companies");
+    Console.WriteLine("  company delete    Delete a company");
     Console.WriteLine("  attachment list    List attachments for a ticket");
     Console.WriteLine("  attachment download Download an attachment");
     Console.WriteLine("  attachment upload  Upload an attachment to a ticket");
@@ -171,6 +183,8 @@ static async Task<int> RouteCommand(string[] args, bool isReadOnly = false)
     {
         "config" => await HandleConfigCommand(args[1..], isReadOnly),
         "ticket" => await HandleTicketCommand(args[1..], isReadOnly),
+        "contact" => await HandleContactCommand(args[1..], isReadOnly),
+        "company" => await HandleCompanyCommand(args[1..], isReadOnly),
         "attachment" => await HandleAttachmentCommand(args[1..], isReadOnly),
         "export" => await HandleExportCommand(args[1..]),
         "update" => await HandleUpdateCommand(args[1..]),
@@ -1905,5 +1919,516 @@ static async Task<int> InstallPowerShellCompletion()
         return 1;
     }
 
+    return 0;
+}
+
+static async Task<int> HandleContactCommand(string[] args, bool isReadOnly = false)
+{
+    if (args.Length < 1)
+    {
+        return CommandHelp.ShowHelpAndReturn("contact");
+    }
+
+    if (args.Length == 1 && CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("contact");
+    }
+
+    var configService = new FreshdeskCLI.Services.ConfigurationService();
+    var config = await configService.LoadConfigAsync();
+
+    if (config == null || !config.IsValid)
+    {
+        Console.WriteLine("Invalid or missing configuration. Use 'freshdesk config set' to configure.");
+        return 1;
+    }
+
+    using var client = new FreshdeskCLI.Services.FreshdeskApiClient(config);
+
+    return args[0].ToLowerInvariant() switch
+    {
+        "list" => await HandleContactList(args[1..], client),
+        "get" => await HandleContactGet(args[1..], client),
+        "create" => isReadOnly ? ShowReadOnlyError("contact create") : await HandleContactCreate(args[1..], client),
+        "update" => isReadOnly ? ShowReadOnlyError("contact update") : await HandleContactUpdate(args[1..], client),
+        "search" => await HandleContactSearch(args[1..], client),
+        "delete" => isReadOnly ? ShowReadOnlyError("contact delete") : await HandleContactDelete(args[1..], client),
+        _ => ShowUnknownCommand($"contact {args[0]}")
+    };
+}
+
+static async Task<int> HandleContactList(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("contact", "list");
+    }
+
+    int page = 1;
+    int limit = 30;
+    string format = "table";
+
+    for (int i = 0; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--page" when i + 1 < args.Length && int.TryParse(args[i + 1], out var p):
+                page = p;
+                i++;
+                break;
+            case "--limit" when i + 1 < args.Length && int.TryParse(args[i + 1], out var l):
+                limit = l;
+                i++;
+                break;
+            case "--format" when i + 1 < args.Length:
+                format = args[++i];
+                break;
+        }
+    }
+
+    var contacts = await client.GetContactsAsync(page, limit);
+    OutputFormatter.PrintContacts(contacts, format);
+    return 0;
+}
+
+static async Task<int> HandleContactGet(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("contact", "get");
+    }
+
+    if (args.Length < 1 || !long.TryParse(args[0], out var contactId))
+    {
+        Console.WriteLine("Error: Missing or invalid contact ID.");
+        return 1;
+    }
+
+    string format = "table";
+    for (int i = 1; i < args.Length; i++)
+    {
+        if (args[i] == "--format" && i + 1 < args.Length)
+            format = args[++i];
+    }
+
+    var contact = await client.GetContactAsync(contactId);
+    if (contact == null)
+    {
+        Console.WriteLine($"Contact {contactId} not found.");
+        return 1;
+    }
+
+    OutputFormatter.PrintContactDetails(contact, format);
+    return 0;
+}
+
+static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("contact", "create");
+    }
+
+    var contact = new Contact();
+
+    for (int i = 0; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--name" when i + 1 < args.Length:
+                contact.Name = args[++i];
+                break;
+            case "--email" when i + 1 < args.Length:
+                contact.Email = args[++i];
+                break;
+            case "--phone" when i + 1 < args.Length:
+                contact.Phone = args[++i];
+                break;
+            case "--mobile" when i + 1 < args.Length:
+                contact.Mobile = args[++i];
+                break;
+            case "--job-title" when i + 1 < args.Length:
+                contact.JobTitle = args[++i];
+                break;
+            case "--company-id" when i + 1 < args.Length && long.TryParse(args[i + 1], out var cid):
+                contact.CompanyId = cid;
+                i++;
+                break;
+            case "--view-all-tickets":
+                contact.ViewAllTickets = true;
+                break;
+            case "--description" when i + 1 < args.Length:
+                contact.Description = args[++i];
+                break;
+            case "--address" when i + 1 < args.Length:
+                contact.Address = args[++i];
+                break;
+        }
+    }
+
+    if (string.IsNullOrWhiteSpace(contact.Name) || string.IsNullOrWhiteSpace(contact.Email))
+    {
+        Console.WriteLine("Error: --name and --email are required.");
+        return 1;
+    }
+
+    var created = await client.CreateContactAsync(contact);
+    Console.WriteLine($"✓ Contact created successfully!");
+    OutputFormatter.PrintContactDetails(created);
+    return 0;
+}
+
+static async Task<int> HandleContactUpdate(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("contact", "update");
+    }
+
+    if (args.Length < 1 || !long.TryParse(args[0], out var contactId))
+    {
+        Console.WriteLine("Error: Missing or invalid contact ID.");
+        return 1;
+    }
+
+    var contact = new Contact();
+    bool? viewAllTickets = null;
+
+    for (int i = 1; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--name" when i + 1 < args.Length:
+                contact.Name = args[++i];
+                break;
+            case "--email" when i + 1 < args.Length:
+                contact.Email = args[++i];
+                break;
+            case "--phone" when i + 1 < args.Length:
+                contact.Phone = args[++i];
+                break;
+            case "--mobile" when i + 1 < args.Length:
+                contact.Mobile = args[++i];
+                break;
+            case "--job-title" when i + 1 < args.Length:
+                contact.JobTitle = args[++i];
+                break;
+            case "--company-id" when i + 1 < args.Length && long.TryParse(args[i + 1], out var cid):
+                contact.CompanyId = cid;
+                i++;
+                break;
+            case "--view-all-tickets" when i + 1 < args.Length:
+                viewAllTickets = bool.Parse(args[++i]);
+                break;
+            case "--description" when i + 1 < args.Length:
+                contact.Description = args[++i];
+                break;
+        }
+    }
+
+    if (viewAllTickets.HasValue)
+        contact.ViewAllTickets = viewAllTickets.Value;
+
+    var updated = await client.UpdateContactAsync(contactId, contact);
+    Console.WriteLine($"✓ Contact updated successfully!");
+    OutputFormatter.PrintContactDetails(updated);
+    return 0;
+}
+
+static async Task<int> HandleContactSearch(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("contact", "search");
+    }
+
+    string? email = null;
+    string? phone = null;
+    string format = "table";
+
+    for (int i = 0; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--email" when i + 1 < args.Length:
+                email = args[++i];
+                break;
+            case "--phone" when i + 1 < args.Length:
+                phone = args[++i];
+                break;
+            case "--format" when i + 1 < args.Length:
+                format = args[++i];
+                break;
+        }
+    }
+
+    if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(phone))
+    {
+        Console.WriteLine("Error: At least one of --email or --phone is required.");
+        return 1;
+    }
+
+    var contacts = await client.SearchContactsAsync(email, phone);
+    OutputFormatter.PrintContacts(contacts, format);
+    return 0;
+}
+
+static async Task<int> HandleContactDelete(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("contact", "delete");
+    }
+
+    if (args.Length < 1 || !long.TryParse(args[0], out var contactId))
+    {
+        Console.WriteLine("Error: Missing or invalid contact ID.");
+        return 1;
+    }
+
+    await client.DeleteContactAsync(contactId);
+    Console.WriteLine($"✓ Contact {contactId} deleted successfully.");
+    return 0;
+}
+
+static async Task<int> HandleCompanyCommand(string[] args, bool isReadOnly = false)
+{
+    if (args.Length < 1)
+    {
+        return CommandHelp.ShowHelpAndReturn("company");
+    }
+
+    if (args.Length == 1 && CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("company");
+    }
+
+    var configService = new FreshdeskCLI.Services.ConfigurationService();
+    var config = await configService.LoadConfigAsync();
+
+    if (config == null || !config.IsValid)
+    {
+        Console.WriteLine("Invalid or missing configuration. Use 'freshdesk config set' to configure.");
+        return 1;
+    }
+
+    using var client = new FreshdeskCLI.Services.FreshdeskApiClient(config);
+
+    return args[0].ToLowerInvariant() switch
+    {
+        "list" => await HandleCompanyList(args[1..], client),
+        "get" => await HandleCompanyGet(args[1..], client),
+        "create" => isReadOnly ? ShowReadOnlyError("company create") : await HandleCompanyCreate(args[1..], client),
+        "update" => isReadOnly ? ShowReadOnlyError("company update") : await HandleCompanyUpdate(args[1..], client),
+        "search" => await HandleCompanySearch(args[1..], client),
+        "delete" => isReadOnly ? ShowReadOnlyError("company delete") : await HandleCompanyDelete(args[1..], client),
+        _ => ShowUnknownCommand($"company {args[0]}")
+    };
+}
+
+static async Task<int> HandleCompanyList(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("company", "list");
+    }
+
+    int page = 1;
+    int limit = 30;
+    string format = "table";
+
+    for (int i = 0; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--page" when i + 1 < args.Length && int.TryParse(args[i + 1], out var p):
+                page = p;
+                i++;
+                break;
+            case "--limit" when i + 1 < args.Length && int.TryParse(args[i + 1], out var l):
+                limit = l;
+                i++;
+                break;
+            case "--format" when i + 1 < args.Length:
+                format = args[++i];
+                break;
+        }
+    }
+
+    var companies = await client.GetCompaniesAsync(page, limit);
+    OutputFormatter.PrintCompanies(companies, format);
+    return 0;
+}
+
+static async Task<int> HandleCompanyGet(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("company", "get");
+    }
+
+    if (args.Length < 1 || !long.TryParse(args[0], out var companyId))
+    {
+        Console.WriteLine("Error: Missing or invalid company ID.");
+        return 1;
+    }
+
+    string format = "table";
+    for (int i = 1; i < args.Length; i++)
+    {
+        if (args[i] == "--format" && i + 1 < args.Length)
+            format = args[++i];
+    }
+
+    var company = await client.GetCompanyAsync(companyId);
+    if (company == null)
+    {
+        Console.WriteLine($"Company {companyId} not found.");
+        return 1;
+    }
+
+    OutputFormatter.PrintCompanyDetails(company, format);
+    return 0;
+}
+
+static async Task<int> HandleCompanyCreate(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("company", "create");
+    }
+
+    var company = new Company();
+    var domainsList = new List<string>();
+
+    for (int i = 0; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--name" when i + 1 < args.Length:
+                company.Name = args[++i];
+                break;
+            case "--description" when i + 1 < args.Length:
+                company.Description = args[++i];
+                break;
+            case "--domains" when i + 1 < args.Length:
+                domainsList.AddRange(args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                break;
+            case "--industry" when i + 1 < args.Length:
+                company.Industry = args[++i];
+                break;
+            case "--health-score" when i + 1 < args.Length:
+                company.HealthScore = args[++i];
+                break;
+            case "--note" when i + 1 < args.Length:
+                company.Note = args[++i];
+                break;
+        }
+    }
+
+    if (domainsList.Count > 0)
+        company.Domains = [.. domainsList];
+
+    if (string.IsNullOrWhiteSpace(company.Name))
+    {
+        Console.WriteLine("Error: --name is required.");
+        return 1;
+    }
+
+    var created = await client.CreateCompanyAsync(company);
+    Console.WriteLine($"✓ Company created successfully!");
+    OutputFormatter.PrintCompanyDetails(created);
+    return 0;
+}
+
+static async Task<int> HandleCompanyUpdate(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("company", "update");
+    }
+
+    if (args.Length < 1 || !long.TryParse(args[0], out var companyId))
+    {
+        Console.WriteLine("Error: Missing or invalid company ID.");
+        return 1;
+    }
+
+    var company = new Company();
+    var domainsList = new List<string>();
+
+    for (int i = 1; i < args.Length; i++)
+    {
+        switch (args[i])
+        {
+            case "--name" when i + 1 < args.Length:
+                company.Name = args[++i];
+                break;
+            case "--description" when i + 1 < args.Length:
+                company.Description = args[++i];
+                break;
+            case "--domains" when i + 1 < args.Length:
+                domainsList.AddRange(args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+                break;
+            case "--industry" when i + 1 < args.Length:
+                company.Industry = args[++i];
+                break;
+            case "--health-score" when i + 1 < args.Length:
+                company.HealthScore = args[++i];
+                break;
+        }
+    }
+
+    if (domainsList.Count > 0)
+        company.Domains = [.. domainsList];
+
+    var updated = await client.UpdateCompanyAsync(companyId, company);
+    Console.WriteLine($"✓ Company updated successfully!");
+    OutputFormatter.PrintCompanyDetails(updated);
+    return 0;
+}
+
+static async Task<int> HandleCompanySearch(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("company", "search");
+    }
+
+    if (args.Length < 1)
+    {
+        Console.WriteLine("Error: Company name is required.");
+        return 1;
+    }
+
+    string format = "table";
+    string name = args[0];
+
+    for (int i = 1; i < args.Length; i++)
+    {
+        if (args[i] == "--format" && i + 1 < args.Length)
+            format = args[++i];
+    }
+
+    var companies = await client.SearchCompaniesAsync(name);
+    OutputFormatter.PrintCompanies(companies, format);
+    return 0;
+}
+
+static async Task<int> HandleCompanyDelete(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("company", "delete");
+    }
+
+    if (args.Length < 1 || !long.TryParse(args[0], out var companyId))
+    {
+        Console.WriteLine("Error: Missing or invalid company ID.");
+        return 1;
+    }
+
+    await client.DeleteCompanyAsync(companyId);
+    Console.WriteLine($"✓ Company {companyId} deleted successfully.");
     return 0;
 }

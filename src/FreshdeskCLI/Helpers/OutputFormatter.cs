@@ -238,4 +238,157 @@ public static class OutputFormatter
             }
         }
     }
+
+    public static void PrintContacts(Contact[] contacts, string format = "table")
+    {
+        switch (format.ToLowerInvariant())
+        {
+            case "json":
+                var json = JsonSerializer.Serialize(contacts, FreshdeskJsonContext.Default.ContactArray);
+                Console.WriteLine(json);
+                break;
+            case "csv":
+                Console.WriteLine("ID,Name,Email,Phone,CompanyID,Active,Created");
+                foreach (var contact in contacts)
+                {
+                    var name = EscapeCsvField(contact.Name);
+                    var email = EscapeCsvField(contact.Email);
+                    var phone = EscapeCsvField(contact.Phone ?? "");
+                    Console.WriteLine($"{contact.Id},{name},{email},{phone},{contact.CompanyId ?? 0},{contact.Active},{contact.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+                }
+                break;
+            case "table":
+            default:
+                if (contacts.Length == 0)
+                {
+                    Console.WriteLine("No contacts found.");
+                    return;
+                }
+                Console.WriteLine($"{"ID",-10} {"Name",-25} {"Email",-30} {"Phone",-15} {"Company ID",-12} {"Active",-8} {"Created",-20}");
+                Console.WriteLine(new string('-', 125));
+                foreach (var contact in contacts)
+                {
+                    var name = TruncateString(contact.Name, 25);
+                    var email = TruncateString(contact.Email, 30);
+                    var phone = TruncateString(contact.Phone ?? "", 15);
+                    var companyId = contact.CompanyId?.ToString() ?? "N/A";
+                    Console.WriteLine($"{contact.Id,-10} {name,-25} {email,-30} {phone,-15} {companyId,-12} {contact.Active,-8} {contact.CreatedAt:yyyy-MM-dd HH:mm}");
+                }
+                Console.WriteLine($"\nTotal: {contacts.Length} contacts");
+                break;
+        }
+    }
+
+    public static void PrintContactDetails(Contact contact, string format = "table")
+    {
+        if (format.ToLowerInvariant() == "json")
+        {
+            var json = JsonSerializer.Serialize(contact, FreshdeskJsonContext.Default.Contact);
+            Console.WriteLine(json);
+            return;
+        }
+
+        Console.WriteLine($"Contact #{contact.Id}");
+        Console.WriteLine(new string('=', 50));
+        Console.WriteLine($"Name: {contact.Name}");
+        Console.WriteLine($"Email: {contact.Email}");
+        if (!string.IsNullOrEmpty(contact.Phone))
+            Console.WriteLine($"Phone: {contact.Phone}");
+        if (!string.IsNullOrEmpty(contact.Mobile))
+            Console.WriteLine($"Mobile: {contact.Mobile}");
+        if (!string.IsNullOrEmpty(contact.JobTitle))
+            Console.WriteLine($"Job Title: {contact.JobTitle}");
+        if (contact.CompanyId.HasValue)
+            Console.WriteLine($"Company ID: {contact.CompanyId.Value}");
+        Console.WriteLine($"View All Tickets: {contact.ViewAllTickets}");
+        Console.WriteLine($"Active: {contact.Active}");
+        Console.WriteLine($"Language: {contact.Language}");
+        if (!string.IsNullOrEmpty(contact.TimeZone))
+            Console.WriteLine($"Time Zone: {contact.TimeZone}");
+        if (!string.IsNullOrEmpty(contact.Address))
+            Console.WriteLine($"Address: {contact.Address}");
+        if (!string.IsNullOrEmpty(contact.Description))
+            Console.WriteLine($"Description: {contact.Description}");
+        if (contact.OtherCompanies?.Length > 0)
+        {
+            Console.WriteLine($"Other Companies: {string.Join(", ", contact.OtherCompanies.Select(c => c.CompanyId))}");
+        }
+        Console.WriteLine($"Created: {contact.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+        Console.WriteLine($"Updated: {contact.UpdatedAt:yyyy-MM-dd HH:mm:ss}");
+    }
+
+    public static void PrintCompanies(Company[] companies, string format = "table")
+    {
+        switch (format.ToLowerInvariant())
+        {
+            case "json":
+                var json = JsonSerializer.Serialize(companies, FreshdeskJsonContext.Default.CompanyArray);
+                Console.WriteLine(json);
+                break;
+            case "csv":
+                Console.WriteLine("ID,Name,Description,Industry,Domains,Created");
+                foreach (var company in companies)
+                {
+                    var name = EscapeCsvField(company.Name);
+                    var desc = EscapeCsvField(company.Description ?? "");
+                    var industry = EscapeCsvField(company.Industry ?? "");
+                    var domains = EscapeCsvField(company.Domains != null ? string.Join(";", company.Domains) : "");
+                    Console.WriteLine($"{company.Id},{name},{desc},{industry},{domains},{company.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+                }
+                break;
+            case "table":
+            default:
+                if (companies.Length == 0)
+                {
+                    Console.WriteLine("No companies found.");
+                    return;
+                }
+                Console.WriteLine($"{"ID",-10} {"Name",-30} {"Description",-40} {"Industry",-20} {"Domains",-20} {"Created",-20}");
+                Console.WriteLine(new string('-', 145));
+                foreach (var company in companies)
+                {
+                    var name = TruncateString(company.Name, 30);
+                    var desc = TruncateString(company.Description ?? "", 40);
+                    var industry = TruncateString(company.Industry ?? "", 20);
+                    var domains = TruncateString(company.Domains != null ? string.Join(", ", company.Domains) : "", 20);
+                    Console.WriteLine($"{company.Id,-10} {name,-30} {desc,-40} {industry,-20} {domains,-20} {company.CreatedAt:yyyy-MM-dd HH:mm}");
+                }
+                Console.WriteLine($"\nTotal: {companies.Length} companies");
+                break;
+        }
+    }
+
+    public static void PrintCompanyDetails(Company company, string format = "table")
+    {
+        if (format.ToLowerInvariant() == "json")
+        {
+            var json = JsonSerializer.Serialize(company, FreshdeskJsonContext.Default.Company);
+            Console.WriteLine(json);
+            return;
+        }
+
+        Console.WriteLine($"Company #{company.Id}");
+        Console.WriteLine(new string('=', 50));
+        Console.WriteLine($"Name: {company.Name}");
+        if (!string.IsNullOrEmpty(company.Description))
+            Console.WriteLine($"Description: {company.Description}");
+        if (company.Domains?.Length > 0)
+            Console.WriteLine($"Domains: {string.Join(", ", company.Domains)}");
+        if (!string.IsNullOrEmpty(company.Industry))
+            Console.WriteLine($"Industry: {company.Industry}");
+        if (!string.IsNullOrEmpty(company.HealthScore))
+            Console.WriteLine($"Health Score: {company.HealthScore}");
+        if (!string.IsNullOrEmpty(company.Note))
+            Console.WriteLine($"Note: {company.Note}");
+        if (company.CustomFields?.Count > 0)
+        {
+            Console.WriteLine("Custom Fields:");
+            foreach (var field in company.CustomFields)
+            {
+                Console.WriteLine($"  {field.Key}: {field.Value}");
+            }
+        }
+        Console.WriteLine($"Created: {company.CreatedAt:yyyy-MM-dd HH:mm:ss}");
+        Console.WriteLine($"Updated: {company.UpdatedAt:yyyy-MM-dd HH:mm:ss}");
+    }
 }
