@@ -499,23 +499,23 @@ public class FreshdeskApiClientTests
     public async Task CreateContactAsync_SendsCorrectRequest()
     {
         // Arrange
-        var newContact = new Contact
+        var newContact = new Dictionary<string, object>
         {
-            Name = "New Contact",
-            Email = "new@example.com",
-            CompanyId = 789,
-            ViewAllTickets = true,
-            Phone = "555-1234"
+            ["name"] = "New Contact",
+            ["email"] = "new@example.com",
+            ["company_id"] = 789L,
+            ["view_all_tickets"] = true,
+            ["phone"] = "555-1234"
         };
 
         var createdContact = new Contact
         {
             Id = 101,
-            Name = newContact.Name,
-            Email = newContact.Email,
-            CompanyId = newContact.CompanyId,
-            ViewAllTickets = newContact.ViewAllTickets,
-            Phone = newContact.Phone,
+            Name = "New Contact",
+            Email = "new@example.com",
+            CompanyId = 789,
+            ViewAllTickets = true,
+            Phone = "555-1234",
             Active = true,
             CreatedAt = DateTimeOffset.Now
         };
@@ -551,10 +551,10 @@ public class FreshdeskApiClientTests
     public async Task UpdateContactAsync_SendsCorrectRequest()
     {
         // Arrange
-        var updateContact = new Contact
+        var updates = new Dictionary<string, object>
         {
-            Name = "Updated Contact",
-            ViewAllTickets = false
+            ["name"] = "Updated Contact",
+            ["view_all_tickets"] = false
         };
 
         var updatedContact = new Contact
@@ -583,7 +583,7 @@ public class FreshdeskApiClientTests
             });
 
         // Act
-        var result = await _client.UpdateContactAsync(202, updateContact);
+        var result = await _client.UpdateContactAsync(202, updates);
 
         // Assert
         Assert.NotNull(result);
@@ -742,21 +742,21 @@ public class FreshdeskApiClientTests
     public async Task CreateCompanyAsync_SendsCorrectRequest()
     {
         // Arrange
-        var newCompany = new Company
+        var newCompany = new Dictionary<string, object>
         {
-            Name = "New Company",
-            Description = "A new company",
-            Industry = "Technology",
-            Domains = new[] { "newco.com" }
+            ["name"] = "New Company",
+            ["description"] = "A new company",
+            ["industry"] = "Technology",
+            ["domains"] = new[] { "newco.com" }
         };
 
         var createdCompany = new Company
         {
             Id = 101,
-            Name = newCompany.Name,
-            Description = newCompany.Description,
-            Industry = newCompany.Industry,
-            Domains = newCompany.Domains,
+            Name = "New Company",
+            Description = "A new company",
+            Industry = "Technology",
+            Domains = new[] { "newco.com" },
             CreatedAt = DateTimeOffset.Now
         };
 
@@ -790,10 +790,10 @@ public class FreshdeskApiClientTests
     public async Task UpdateCompanyAsync_SendsCorrectRequest()
     {
         // Arrange
-        var updateCompany = new Company
+        var updates = new Dictionary<string, object>
         {
-            Name = "Updated Company",
-            Industry = "Finance"
+            ["name"] = "Updated Company",
+            ["industry"] = "Finance"
         };
 
         var updatedCompany = new Company
@@ -821,7 +821,7 @@ public class FreshdeskApiClientTests
             });
 
         // Act
-        var result = await _client.UpdateCompanyAsync(202, updateCompany);
+        var result = await _client.UpdateCompanyAsync(202, updates);
 
         // Assert
         Assert.NotNull(result);
