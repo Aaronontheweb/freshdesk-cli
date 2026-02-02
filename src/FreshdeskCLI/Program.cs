@@ -1050,6 +1050,48 @@ static void TestAotCompatibility()
 
         var configJson = JsonSerializer.Serialize(testConfig, FreshdeskJsonContext.Default.FreshdeskConfig);
         Console.WriteLine($"Config serialization test passed: {configJson.Length} bytes");
+
+        // Test Contact serialization
+        var testContact = new Contact
+        {
+            Id = 1,
+            Name = "Test Contact",
+            Email = "test@example.com",
+            CompanyId = 123,
+            ViewAllTickets = true,
+            Active = true,
+            CreatedAt = DateTimeOffset.Now,
+            UpdatedAt = DateTimeOffset.Now,
+            OtherCompanies = [
+                new CompanyAssociation { CompanyId = 456 }
+            ]
+        };
+
+        var contactJson = JsonSerializer.Serialize(testContact, FreshdeskJsonContext.Default.Contact);
+        Console.WriteLine($"Contact serialization test passed: {contactJson.Length} bytes");
+
+        var deserializedContact = JsonSerializer.Deserialize(contactJson, FreshdeskJsonContext.Default.Contact);
+        Console.WriteLine($"Contact deserialization test passed: Contact #{deserializedContact?.Id} - {deserializedContact?.Name}");
+
+        // Test Company serialization
+        var testCompany = new Company
+        {
+            Id = 1,
+            Name = "Test Company",
+            Description = "Test Description",
+            Domains = ["test.com", "example.com"],
+            Industry = "Technology",
+            CreatedAt = DateTimeOffset.Now,
+            UpdatedAt = DateTimeOffset.Now
+        };
+
+        var companyJson = JsonSerializer.Serialize(testCompany, FreshdeskJsonContext.Default.Company);
+        Console.WriteLine($"Company serialization test passed: {companyJson.Length} bytes");
+
+        var deserializedCompany = JsonSerializer.Deserialize(companyJson, FreshdeskJsonContext.Default.Company);
+        Console.WriteLine($"Company deserialization test passed: Company #{deserializedCompany?.Id} - {deserializedCompany?.Name}");
+
+        Console.WriteLine("\n✓ All AOT compatibility tests passed!");
     }
     catch (Exception ex)
     {
