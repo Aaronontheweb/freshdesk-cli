@@ -1,3 +1,75 @@
+#### 1.3.0 February 2nd 2026 ####
+
+**Major Feature Release**
+
+This release adds comprehensive contact and company management commands, enabling full programmatic control over Freshdesk contacts and organizations.
+
+**New Features:**
+- **Contact Management** (#88)
+  - Full CRUD operations: list, get, create, update, search, delete
+  - Set `view_all_tickets` flag to allow contacts to see all company tickets
+  - Search contacts by email or phone
+  - Associate contacts with companies
+  - Support for all contact fields (name, email, phone, mobile, job title, etc.)
+
+- **Company Management** (#88)
+  - Full CRUD operations: list, get, create, update, search, delete
+  - Search companies by name
+  - Manage company properties (domains, industry, health score, notes)
+  - Associate contacts with companies during creation
+
+- **Generic Custom Fields** (#88)
+  - Added `--custom-field` parameter for instance-specific required fields
+  - Works with both contacts and companies
+  - Supports multiple custom fields per command
+
+- **Enhanced Error Reporting** (#88)
+  - Display actual Freshdesk API error messages for better troubleshooting
+  - Clearer validation errors for missing required fields
+
+**Technical Improvements:**
+- Fixed .NET version mismatch in AOT builds (updated to .NET 9.0.12)
+- Improved Dictionary-based write operations to exclude read-only fields
+- Enhanced output formatters for contact and company data
+- Full pagination support for list operations
+- Maintained AOT compatibility and performance standards
+
+**Usage Examples:**
+```bash
+# Create a company
+freshdesk company create --name "Acme Corp" --description "A great company"
+
+# Create a contact with view_all_tickets enabled
+freshdesk contact create --name "John Doe" --email john@acme.com \
+  --company-id 12345 --view-all-tickets
+
+# Search for contacts by email
+freshdesk contact search --email john@acme.com
+
+# List all companies
+freshdesk company list --format table
+```
+
+**Why This Matters:**
+The `view_all_tickets` flag solves intermittent unique value errors when managing contacts via the Freshdesk web UI. By creating contacts programmatically with this flag, you can ensure contacts have proper visibility across all company tickets.
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.2.0 October 8th 2025 ####
 
 **Bug Fix Release**
