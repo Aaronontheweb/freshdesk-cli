@@ -300,7 +300,7 @@ public static class OutputFormatter
             Console.WriteLine($"Job Title: {contact.JobTitle}");
         if (contact.CompanyId.HasValue)
             Console.WriteLine($"Company ID: {contact.CompanyId.Value}");
-        Console.WriteLine($"View All Tickets: {contact.ViewAllTickets}");
+        Console.WriteLine($"View All Tickets: {contact.ViewAllTickets?.ToString() ?? "N/A"}");
         Console.WriteLine($"Active: {contact.Active}");
         Console.WriteLine($"Language: {contact.Language}");
         if (!string.IsNullOrEmpty(contact.TimeZone))
