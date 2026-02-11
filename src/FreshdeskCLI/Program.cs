@@ -807,14 +807,54 @@ static async Task<int> HandleTicketSearch(string[] args, FreshdeskCLI.Services.F
         return 1;
     }
 
-    var tickets = await client.GetTicketsAsync(1, 100, statusFilter, emailFilter);
+    Ticket[] tickets;
 
-    // Apply additional filters
+    // Use Freshdesk Search API for structured filters (status, priority)
+    var queryParts = new List<string>();
+    if (statusFilter.HasValue)
+        queryParts.Add($"status:{(int)statusFilter.Value}");
     if (priorityFilter.HasValue)
+        queryParts.Add($"priority:{(int)priorityFilter.Value}");
+
+    if (queryParts.Count > 0 || !string.IsNullOrEmpty(emailFilter))
     {
-        tickets = tickets.Where(t => t.Priority == priorityFilter.Value).ToArray();
+        // Search API doesn't support subject text search, so we use it
+        // for structured filters and apply text filter client-side
+        if (!string.IsNullOrEmpty(emailFilter))
+        {
+            tickets = await client.GetTicketsAsync(1, 100, statusFilter, emailFilter);
+            if (priorityFilter.HasValue)
+                tickets = tickets.Where(t => t.Priority == priorityFilter.Value).ToArray();
+        }
+        else
+        {
+            var searchQuery = string.Join(" AND ", queryParts);
+            var allResults = new List<Ticket>();
+            for (int page = 1; page <= 10; page++)
+            {
+                var pageResults = await client.SearchTicketsAsync(searchQuery, page);
+                if (pageResults.Length == 0) break;
+                allResults.AddRange(pageResults);
+                if (pageResults.Length < 30) break;
+            }
+            tickets = allResults.ToArray();
+        }
+    }
+    else
+    {
+        // Text-only search: paginate through list endpoint
+        var allTickets = new List<Ticket>();
+        for (int page = 1; page <= 10; page++)
+        {
+            var pageTickets = await client.GetTicketsAsync(page, 100);
+            if (pageTickets.Length == 0) break;
+            allTickets.AddRange(pageTickets);
+            if (pageTickets.Length < 100) break;
+        }
+        tickets = allTickets.ToArray();
     }
 
+    // Apply text query filter client-side (Search API doesn't support subject/description search)
     if (!string.IsNullOrEmpty(textQuery))
     {
         tickets = tickets.Where(t =>
@@ -2094,11 +2134,23 @@ static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.
                 contactData["job_title"] = args[++i];
                 break;
             case "--company-id" when i + 1 < args.Length && long.TryParse(args[i + 1], out var cid):
+            case "--company" when i + 1 < args.Length && long.TryParse(args[i + 1], out cid):
                 contactData["company_id"] = cid;
                 i++;
                 break;
             case "--view-all-tickets":
-                contactData["view_all_tickets"] = true;
+                if (i + 1 < args.Length && bool.TryParse(args[i + 1], out var vatCreate))
+                {
+                    contactData["view_all_tickets"] = vatCreate;
+                    i++;
+                }
+                else
+                {
+                    contactData["view_all_tickets"] = true;
+                }
+                break;
+            case "--no-view-all-tickets":
+                contactData["view_all_tickets"] = false;
                 break;
             case "--description" when i + 1 < args.Length:
                 contactData["description"] = args[++i];
@@ -2167,11 +2219,23 @@ static async Task<int> HandleContactUpdate(string[] args, FreshdeskCLI.Services.
                 updates["job_title"] = args[++i];
                 break;
             case "--company-id" when i + 1 < args.Length && long.TryParse(args[i + 1], out var cid):
+            case "--company" when i + 1 < args.Length && long.TryParse(args[i + 1], out cid):
                 updates["company_id"] = cid;
                 i++;
                 break;
-            case "--view-all-tickets" when i + 1 < args.Length:
-                updates["view_all_tickets"] = bool.Parse(args[++i]);
+            case "--view-all-tickets":
+                if (i + 1 < args.Length && bool.TryParse(args[i + 1], out var vatUpdate))
+                {
+                    updates["view_all_tickets"] = vatUpdate;
+                    i++;
+                }
+                else
+                {
+                    updates["view_all_tickets"] = true;
+                }
+                break;
+            case "--no-view-all-tickets":
+                updates["view_all_tickets"] = false;
                 break;
             case "--description" when i + 1 < args.Length:
                 updates["description"] = args[++i];

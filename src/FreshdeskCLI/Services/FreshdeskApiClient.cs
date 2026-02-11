@@ -19,6 +19,8 @@ public interface IFreshdeskApiClient
     Task<byte[]> DownloadAttachmentByIdAsync(long attachmentId, CancellationToken cancellationToken = default);
     Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default);
 
+    Task<Ticket[]> SearchTicketsAsync(string query, int page = 1, CancellationToken cancellationToken = default);
+
     Task<Contact[]> GetContactsAsync(int page = 1, int limit = 30, CancellationToken cancellationToken = default);
     Task<Contact?> GetContactAsync(long id, CancellationToken cancellationToken = default);
     Task<Contact> CreateContactAsync(Dictionary<string, object> contactData, CancellationToken cancellationToken = default);
@@ -407,6 +409,19 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
             ".xml" => "application/xml",
             _ => "application/octet-stream"
         };
+    }
+
+    public async Task<Ticket[]> SearchTicketsAsync(string query, int page = 1, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(query);
+
+        var endpoint = $"/api/v2/search/tickets?query=\"{Uri.EscapeDataString(query)}\"&page={page}";
+        var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        var searchResult = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.TicketSearchResult);
+        return searchResult?.Results ?? [];
     }
 
     public async Task<Contact[]> GetContactsAsync(int page = 1, int limit = 30, CancellationToken cancellationToken = default)

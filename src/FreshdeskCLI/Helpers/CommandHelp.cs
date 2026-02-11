@@ -285,6 +285,239 @@ public static class CommandHelp
                 "freshdesk export ticket 123 --include-conversations --output ticket.json"
             }
         },
+        ["contact"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk contact <subcommand> [options]",
+            Description = "Manage Freshdesk contacts",
+            Subcommands = new Dictionary<string, string>
+            {
+                ["list"] = "List contacts",
+                ["get"] = "Get contact details",
+                ["create"] = "Create a new contact",
+                ["update"] = "Update an existing contact",
+                ["search"] = "Search contacts by email or phone",
+                ["delete"] = "Delete a contact"
+            }
+        },
+        ["contact list"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk contact list [options]",
+            Description = "List contacts with optional pagination",
+            Options = new Dictionary<string, string>
+            {
+                ["--page, -p <number>"] = "Page number (default: 1)",
+                ["--limit, -l <number>"] = "Items per page (default: 30)",
+                ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
+            },
+            Examples = new[]
+            {
+                "freshdesk contact list",
+                "freshdesk contact list --page 2 --limit 50",
+                "freshdesk contact list --format json"
+            }
+        },
+        ["contact get"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk contact get <contact-id> [options]",
+            Description = "Get detailed information about a specific contact",
+            Options = new Dictionary<string, string>
+            {
+                ["--format, -f <format>"] = "Output format (table, json) (default: table)"
+            },
+            Examples = new[]
+            {
+                "freshdesk contact get 123",
+                "freshdesk contact get 123 --format json"
+            }
+        },
+        ["contact create"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk contact create [options]",
+            Description = "Create a new contact",
+            RequiredOptions = new Dictionary<string, string>
+            {
+                ["--name <name>"] = "Contact name",
+                ["--email <email>"] = "Contact email address"
+            },
+            Options = new Dictionary<string, string>
+            {
+                ["--phone <phone>"] = "Phone number",
+                ["--mobile <mobile>"] = "Mobile number",
+                ["--job-title <title>"] = "Job title",
+                ["--company-id, --company <id>"] = "Company ID to associate with",
+                ["--view-all-tickets"] = "Allow contact to view all company tickets (flag or true/false)",
+                ["--no-view-all-tickets"] = "Prevent contact from viewing all company tickets",
+                ["--description <desc>"] = "Contact description",
+                ["--address <address>"] = "Contact address",
+                ["--custom-field <key=value>"] = "Set a custom field (repeatable)"
+            },
+            Examples = new[]
+            {
+                "freshdesk contact create --name \"John Doe\" --email john@example.com",
+                "freshdesk contact create --name \"Jane\" --email jane@example.com --company 123 --view-all-tickets",
+                "freshdesk contact create --name \"Bob\" --email bob@example.com --job-title \"Engineer\" --phone \"+1234567890\""
+            }
+        },
+        ["contact update"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk contact update <contact-id> [options]",
+            Description = "Update an existing contact",
+            Options = new Dictionary<string, string>
+            {
+                ["--name <name>"] = "Contact name",
+                ["--email <email>"] = "Contact email address",
+                ["--phone <phone>"] = "Phone number",
+                ["--mobile <mobile>"] = "Mobile number",
+                ["--job-title <title>"] = "Job title",
+                ["--company-id, --company <id>"] = "Company ID to associate with",
+                ["--view-all-tickets"] = "Allow contact to view all company tickets (flag or true/false)",
+                ["--no-view-all-tickets"] = "Prevent contact from viewing all company tickets",
+                ["--description <desc>"] = "Contact description"
+            },
+            Examples = new[]
+            {
+                "freshdesk contact update 123 --name \"Jane Smith\"",
+                "freshdesk contact update 123 --company 456 --view-all-tickets",
+                "freshdesk contact update 123 --no-view-all-tickets"
+            }
+        },
+        ["contact search"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk contact search [options]",
+            Description = "Search for contacts by email or phone",
+            Options = new Dictionary<string, string>
+            {
+                ["--email <email>"] = "Search by email address",
+                ["--phone <phone>"] = "Search by phone number",
+                ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
+            },
+            Examples = new[]
+            {
+                "freshdesk contact search --email john@example.com",
+                "freshdesk contact search --phone \"+1234567890\"",
+                "freshdesk contact search --email example.com --format json"
+            }
+        },
+        ["contact delete"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk contact delete <contact-id>",
+            Description = "Delete a contact",
+            Examples = new[]
+            {
+                "freshdesk contact delete 123"
+            }
+        },
+        ["company"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk company <subcommand> [options]",
+            Description = "Manage Freshdesk companies",
+            Subcommands = new Dictionary<string, string>
+            {
+                ["list"] = "List companies",
+                ["get"] = "Get company details",
+                ["create"] = "Create a new company",
+                ["update"] = "Update an existing company",
+                ["search"] = "Search companies by name",
+                ["delete"] = "Delete a company"
+            }
+        },
+        ["company list"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk company list [options]",
+            Description = "List companies with optional pagination",
+            Options = new Dictionary<string, string>
+            {
+                ["--page, -p <number>"] = "Page number (default: 1)",
+                ["--limit, -l <number>"] = "Items per page (default: 30)",
+                ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
+            },
+            Examples = new[]
+            {
+                "freshdesk company list",
+                "freshdesk company list --page 2 --format json"
+            }
+        },
+        ["company get"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk company get <company-id> [options]",
+            Description = "Get detailed information about a specific company",
+            Options = new Dictionary<string, string>
+            {
+                ["--format, -f <format>"] = "Output format (table, json) (default: table)"
+            },
+            Examples = new[]
+            {
+                "freshdesk company get 123",
+                "freshdesk company get 123 --format json"
+            }
+        },
+        ["company create"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk company create [options]",
+            Description = "Create a new company",
+            RequiredOptions = new Dictionary<string, string>
+            {
+                ["--name <name>"] = "Company name"
+            },
+            Options = new Dictionary<string, string>
+            {
+                ["--description <desc>"] = "Company description",
+                ["--domains <domains>"] = "Comma-separated list of domains",
+                ["--industry <industry>"] = "Industry type",
+                ["--health-score <score>"] = "Health score",
+                ["--note <note>"] = "Company note",
+                ["--custom-field <key=value>"] = "Set a custom field (repeatable)"
+            },
+            Examples = new[]
+            {
+                "freshdesk company create --name \"Acme Corp\"",
+                "freshdesk company create --name \"Acme\" --domains \"acme.com,acme.org\" --industry \"Technology\""
+            }
+        },
+        ["company update"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk company update <company-id> [options]",
+            Description = "Update an existing company",
+            Options = new Dictionary<string, string>
+            {
+                ["--name <name>"] = "Company name",
+                ["--description <desc>"] = "Company description",
+                ["--domains <domains>"] = "Comma-separated list of domains",
+                ["--industry <industry>"] = "Industry type",
+                ["--health-score <score>"] = "Health score",
+                ["--note <note>"] = "Company note",
+                ["--custom-field <key=value>"] = "Set a custom field (repeatable)"
+            },
+            Examples = new[]
+            {
+                "freshdesk company update 123 --name \"Acme Corporation\"",
+                "freshdesk company update 123 --industry \"SaaS\" --health-score \"Happy\""
+            }
+        },
+        ["company search"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk company search [options]",
+            Description = "Search for companies by name",
+            Options = new Dictionary<string, string>
+            {
+                ["--name, -n <name>"] = "Company name to search for",
+                ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
+            },
+            Examples = new[]
+            {
+                "freshdesk company search --name \"Acme\"",
+                "freshdesk company search --name \"Tech\" --format json"
+            }
+        },
+        ["company delete"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk company delete <company-id>",
+            Description = "Delete a company",
+            Examples = new[]
+            {
+                "freshdesk company delete 123"
+            }
+        },
         ["update"] = new CommandHelpInfo
         {
             Usage = "freshdesk update [options]",
