@@ -1,3 +1,45 @@
+#### 1.3.1 February 11th 2026 ####
+
+**Bug Fix Release**
+
+This release fixes several bugs in the v1.3.0 contact and company management feature.
+
+**Bug Fixes:**
+- **Fixed Contact Deserialization Failure** (#90, #94)
+  - `ViewAllTickets` now nullable to handle null API responses
+  - Displays "N/A" when the field is not set
+- **Fixed `--company` Flag** (#93)
+  - Added `--company` as alias for `--company-id` in contact create and update
+- **Fixed `--view-all-tickets` Inconsistency** (#92)
+  - Both create and update now accept flag-only, explicit true/false, and `--no-view-all-tickets`
+- **Fixed Ticket Search** (#87)
+  - Uses Freshdesk Search API for structured filters (status, priority)
+  - Paginates through up to 1000 tickets for text queries
+  - Previously only searched the first 100 tickets
+- **Added Missing Help Text** (#91)
+  - Added help entries for all contact and company subcommands
+
+**Technical Improvements:**
+- Updated .NET packages from 9.0.12 to 9.0.13
+- Fixed AOT compilation failure with ILCompiler version mismatch
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.3.0 February 2nd 2026 ####
 
 **Major Feature Release**
