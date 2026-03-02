@@ -418,6 +418,7 @@ public static class CommandHelp
                 ["create"] = "Create a new company",
                 ["update"] = "Update an existing company",
                 ["search"] = "Search companies by name",
+                ["fields"] = "List available company fields",
                 ["delete"] = "Delete a company"
             }
         },
@@ -516,6 +517,20 @@ public static class CommandHelp
             Examples = new[]
             {
                 "freshdesk company delete 123"
+            }
+        },
+        ["company fields"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk company fields [options]",
+            Description = "List available company fields for use with create and update commands",
+            Options = new Dictionary<string, string>
+            {
+                ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
+            },
+            Examples = new[]
+            {
+                "freshdesk company fields",
+                "freshdesk company fields --format json"
             }
         },
         ["update"] = new CommandHelpInfo

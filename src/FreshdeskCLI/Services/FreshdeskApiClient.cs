@@ -34,6 +34,7 @@ public interface IFreshdeskApiClient
     Task<Company> UpdateCompanyAsync(long id, Dictionary<string, object> updates, CancellationToken cancellationToken = default);
     Task<Company[]> SearchCompaniesAsync(string name, CancellationToken cancellationToken = default);
     Task DeleteCompanyAsync(long id, CancellationToken cancellationToken = default);
+    Task<CompanyField[]> GetCompanyFieldsAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
@@ -562,5 +563,13 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
     {
         var response = await _httpClient.DeleteAsync($"/api/v2/companies/{id}", cancellationToken);
         response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<CompanyField[]> GetCompanyFieldsAsync(CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync("/api/v2/company_fields", cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.CompanyFieldArray) ?? [];
     }
 }

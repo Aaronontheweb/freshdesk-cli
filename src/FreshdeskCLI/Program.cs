@@ -2334,6 +2334,7 @@ static async Task<int> HandleCompanyCommand(string[] args, bool isReadOnly = fal
         "create" => isReadOnly ? ShowReadOnlyError("company create") : await HandleCompanyCreate(args[1..], client),
         "update" => isReadOnly ? ShowReadOnlyError("company update") : await HandleCompanyUpdate(args[1..], client),
         "search" => await HandleCompanySearch(args[1..], client),
+        "fields" => await HandleCompanyFields(args[1..], client),
         "delete" => isReadOnly ? ShowReadOnlyError("company delete") : await HandleCompanyDelete(args[1..], client),
         _ => ShowUnknownCommand($"company {args[0]}")
     };
@@ -2561,5 +2562,20 @@ static async Task<int> HandleCompanyDelete(string[] args, FreshdeskCLI.Services.
 
     await client.DeleteCompanyAsync(companyId);
     Console.WriteLine($"✓ Company {companyId} deleted successfully.");
+    return 0;
+}
+
+static async Task<int> HandleCompanyFields(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+        return CommandHelp.ShowHelpAndReturn("company", "fields");
+
+    string format = "table";
+    for (int i = 0; i < args.Length; i++)
+        if ((args[i] == "--format" || args[i] == "-f") && i + 1 < args.Length)
+            format = args[++i];
+
+    var fields = await client.GetCompanyFieldsAsync();
+    OutputFormatter.PrintCompanyFields(fields, format);
     return 0;
 }
