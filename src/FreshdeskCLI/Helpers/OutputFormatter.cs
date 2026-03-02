@@ -391,4 +391,45 @@ public static class OutputFormatter
         Console.WriteLine($"Created: {company.CreatedAt:yyyy-MM-dd HH:mm:ss}");
         Console.WriteLine($"Updated: {company.UpdatedAt:yyyy-MM-dd HH:mm:ss}");
     }
+
+    public static void PrintCompanyFields(CompanyField[] fields, string format = "table")
+    {
+        switch (format.ToLowerInvariant())
+        {
+            case "json":
+                var json = JsonSerializer.Serialize(fields, FreshdeskJsonContext.Default.CompanyFieldArray);
+                Console.WriteLine(json);
+                break;
+            case "csv":
+                Console.WriteLine("ID,Name,Label,Type,Req.Agents,Req.Customers,Choices");
+                foreach (var field in fields)
+                {
+                    var name = EscapeCsvField(field.Name);
+                    var label = EscapeCsvField(field.Label);
+                    var fieldType = EscapeCsvField(field.FieldType);
+                    var choices = EscapeCsvField(field.Choices != null ? string.Join(";", field.Choices) : "");
+                    Console.WriteLine($"{field.Id},{name},{label},{fieldType},{field.RequiredForAgents},{field.RequiredForCustomers},{choices}");
+                }
+                break;
+            case "table":
+            default:
+                if (fields.Length == 0)
+                {
+                    Console.WriteLine("No company fields found.");
+                    return;
+                }
+                Console.WriteLine($"{"ID",-10} {"Name",-30} {"Label",-30} {"Type",-20} {"Req.Agents",-12} {"Req.Customers",-14} {"Choices"}");
+                Console.WriteLine(new string('-', 130));
+                foreach (var field in fields)
+                {
+                    var name = TruncateString(field.Name, 30);
+                    var label = TruncateString(field.Label, 30);
+                    var fieldType = TruncateString(field.FieldType, 20);
+                    var choices = field.Choices != null ? TruncateString(string.Join(", ", field.Choices), 30) : "";
+                    Console.WriteLine($"{field.Id,-10} {name,-30} {label,-30} {fieldType,-20} {field.RequiredForAgents,-12} {field.RequiredForCustomers,-14} {choices}");
+                }
+                Console.WriteLine($"\nTotal: {fields.Length} fields");
+                break;
+        }
+    }
 }
