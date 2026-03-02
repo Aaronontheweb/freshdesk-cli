@@ -1956,25 +1956,25 @@ static async Task<int> InstallPowerShellCompletion()
 {
     var completion = CompletionGenerator.GeneratePowerShellCompletion();
 
-    string? profilePath = null;
+    List<string> profilePaths = [];
     if (OperatingSystem.IsWindows())
     {
         var documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        profilePath = Path.Combine(documentsPath, "PowerShell", "Microsoft.PowerShell_profile.ps1");
+        profilePaths.Add(Path.Combine(documentsPath, "PowerShell", "Microsoft.PowerShell_profile.ps1"));
+        profilePaths.Add(Path.Combine(documentsPath, "WindowsPowerShell", "Microsoft.PowerShell_profile.ps1"));
     }
     else
     {
         var homeDir = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        profilePath = Path.Combine(homeDir, ".config", "powershell", "Microsoft.PowerShell_profile.ps1");
+        profilePaths.Add(Path.Combine(homeDir, ".config", "powershell", "Microsoft.PowerShell_profile.ps1"));
     }
 
-    if (profilePath != null)
+    foreach (var profilePath in profilePaths)
     {
-        var profileDir = Path.GetDirectoryName(profilePath);
-        if (profileDir != null)
-            Directory.CreateDirectory(profileDir);
+        var profileDir = Path.GetDirectoryName(profilePath)!;
+        Directory.CreateDirectory(profileDir);
 
-        var completionFile = Path.Combine(Path.GetDirectoryName(profilePath)!, "freshdesk-completion.ps1");
+        var completionFile = Path.Combine(profileDir, "freshdesk-completion.ps1");
         await File.WriteAllTextAsync(completionFile, completion);
 
         if (!File.Exists(profilePath))
@@ -1984,23 +1984,16 @@ static async Task<int> InstallPowerShellCompletion()
         else
         {
             var profileContent = await File.ReadAllTextAsync(profilePath);
-            var sourceCommand = $". '{completionFile}'";
-
             if (!profileContent.Contains("freshdesk-completion.ps1"))
             {
-                await File.AppendAllTextAsync(profilePath, $"\n# Freshdesk CLI completion\n{sourceCommand}\n");
+                await File.AppendAllTextAsync(profilePath, $"\n# Freshdesk CLI completion\n. '{completionFile}'\n");
             }
         }
 
         Console.WriteLine($"✓ PowerShell completion installed to {completionFile}");
-        Console.WriteLine($"  Run '. $PROFILE' to enable completion in current session");
-    }
-    else
-    {
-        Console.WriteLine("Could not determine PowerShell profile path");
-        return 1;
     }
 
+    Console.WriteLine($"  Run '. $PROFILE' to enable completion in current session");
     return 0;
 }
 
