@@ -554,7 +554,8 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
 
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.CompanyArray) ?? [];
+        var searchResult = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.CompanySearchResult);
+        return searchResult?.Results ?? [];
     }
 
     public async Task DeleteCompanyAsync(long id, CancellationToken cancellationToken = default)

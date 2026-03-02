@@ -839,7 +839,8 @@ public class FreshdeskApiClientTests
             new Company { Id = 1, Name = "Acme Corp", Industry = "Technology" }
         };
 
-        var json = JsonSerializer.Serialize(companies, FreshdeskJsonContext.Default.CompanyArray);
+        var searchResult = new CompanySearchResult { Results = companies, Total = companies.Length };
+        var json = JsonSerializer.Serialize(searchResult, FreshdeskJsonContext.Default.CompanySearchResult);
 
         _mockHttpHandler
             .Protected()
