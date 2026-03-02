@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <!-- Nuget package versions -->
-    <MicrosoftNetVersion>9.0.13</MicrosoftNetVersion>
+    <MicrosoftNetVersion>10.0.3</MicrosoftNetVersion>
   </PropertyGroup>
   <!-- App dependencies -->
   <ItemGroup>
