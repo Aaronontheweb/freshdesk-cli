@@ -32,7 +32,6 @@ public static class CompletionGenerator
         }
 
         result["install-completion"] = [];
-        result["update"] = [];
         result["bulk"] = ["update", "export", "delete"];
         return result;
     }
