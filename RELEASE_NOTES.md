@@ -1,3 +1,43 @@
+#### 1.4.0 March 2nd 2026 ####
+
+**Feature and Bug Fix Release**
+
+This release adds company field discovery capabilities and fixes several PowerShell and company search issues.
+
+**New Features:**
+- **Company Fields Command** (#113)
+  - Added `company fields` command for discovering custom fields in your Freshdesk instance
+  - List all available company fields with their types and properties
+  - Essential for building automated company management workflows
+
+**Bug Fixes:**
+- **Fixed PowerShell Completion Installation** (#110, #111)
+  - Removed duplicate 'update' key from PowerShell completion script
+  - Now installs to both PowerShell 5.1 and PowerShell 7 profile paths
+  - Improved compatibility across Windows PowerShell versions
+
+- **Fixed Company Search JSON Deserialization** (#112)
+  - Added proper CompanySearchResult wrapper model for API responses
+  - Company search (`company search --name`) now works correctly
+  - Handles API response format properly
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.3.1 February 11th 2026 ####
 
 **Bug Fix Release**
