@@ -12,7 +12,7 @@ public interface IFreshdeskApiClient
     Task<Ticket[]> GetTicketsAsync(int page = 1, int perPage = 30, TicketStatus? status = null, string? email = null, CancellationToken cancellationToken = default);
     Task<Ticket?> GetTicketAsync(long ticketId, CancellationToken cancellationToken = default);
     Task<Ticket> CreateTicketAsync(Ticket ticket, CancellationToken cancellationToken = default);
-    Task<Ticket> UpdateTicketAsync(long ticketId, Ticket ticket, CancellationToken cancellationToken = default);
+    Task<Ticket> UpdateTicketAsync(long ticketId, Dictionary<string, object> updates, CancellationToken cancellationToken = default);
     Task<Conversation[]> GetTicketConversationsAsync(long ticketId, CancellationToken cancellationToken = default);
     Task<Conversation> ReplyToTicketAsync(long ticketId, string body, bool isPrivate = false, CancellationToken cancellationToken = default);
     Task<byte[]> DownloadAttachmentAsync(string attachmentUrl, CancellationToken cancellationToken = default);
@@ -196,15 +196,20 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
         return JsonSerializer.Deserialize(responseJson, FreshdeskJsonContext.Default.Ticket)!;
     }
 
-    public async Task<Ticket> UpdateTicketAsync(long ticketId, Ticket ticket, CancellationToken cancellationToken = default)
+    public async Task<Ticket> UpdateTicketAsync(long ticketId, Dictionary<string, object> updates, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(ticket);
+        ArgumentNullException.ThrowIfNull(updates);
 
-        var json = JsonSerializer.Serialize(ticket, FreshdeskJsonContext.Default.Ticket);
+        var json = JsonSerializer.Serialize(updates, FreshdeskJsonContext.Default.DictionaryStringObject);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var response = await _httpClient.PutAsync($"/api/v2/tickets/{ticketId}", content, cancellationToken);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException($"Failed to update ticket. Status: {response.StatusCode}, Error: {errorBody}");
+        }
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize(responseJson, FreshdeskJsonContext.Default.Ticket)!;

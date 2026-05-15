@@ -104,7 +104,7 @@ public class MockFreshdeskServer : HttpMessageHandler
         _statusCodes["POST:/api/v2/tickets"] = HttpStatusCode.Created;
     }
 
-    public void SetupUpdateTicket(long ticketId, Ticket updateData, Ticket updatedTicket)
+    public void SetupUpdateTicket(long ticketId, Ticket updatedTicket)
     {
         _responses[$"PUT:/api/v2/tickets/{ticketId}"] = updatedTicket;
         _statusCodes[$"PUT:/api/v2/tickets/{ticketId}"] = HttpStatusCode.OK;

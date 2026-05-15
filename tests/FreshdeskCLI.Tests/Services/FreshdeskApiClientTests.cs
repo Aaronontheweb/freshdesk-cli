@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -222,10 +223,10 @@ public class FreshdeskApiClientTests
     public async Task UpdateTicketAsync_SendsCorrectRequest()
     {
         // Arrange
-        var updateTicket = new Ticket
+        var updates = new Dictionary<string, object>
         {
-            Status = TicketStatus.Resolved,
-            Priority = TicketPriority.Low
+            ["status"] = 4,  // Resolved
+            ["priority"] = 1 // Low
         };
 
         var updatedTicket = new Ticket
@@ -254,7 +255,7 @@ public class FreshdeskApiClientTests
             });
 
         // Act
-        var result = await _client.UpdateTicketAsync(789, updateTicket);
+        var result = await _client.UpdateTicketAsync(789, updates);
 
         // Assert
         Assert.NotNull(result);

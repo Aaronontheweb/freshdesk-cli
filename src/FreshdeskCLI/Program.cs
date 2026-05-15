@@ -704,15 +704,15 @@ static async Task<int> HandleTicketUpdate(string[] args, FreshdeskCLI.Services.F
         return 1;
     }
 
-    var updateTicket = new Ticket();
+    var updates = new Dictionary<string, object>();
     if (status.HasValue)
-        updateTicket.Status = status.Value;
+        updates["status"] = (int)status.Value;
     if (priority.HasValue)
-        updateTicket.Priority = priority.Value;
+        updates["priority"] = (int)priority.Value;
 
     try
     {
-        var updated = await client.UpdateTicketAsync(ticketId, updateTicket);
+        var updated = await client.UpdateTicketAsync(ticketId, updates);
         Console.WriteLine($"Ticket #{updated.Id} updated successfully!");
         Console.WriteLine($"Status: {updated.Status}");
         Console.WriteLine($"Priority: {updated.Priority}");
