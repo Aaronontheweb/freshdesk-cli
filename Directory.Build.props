@@ -2,29 +2,27 @@
 <Project>
   <PropertyGroup>
     <!-- Version configuration -->
-    <VersionPrefix>1.4.0</VersionPrefix>
+    <VersionPrefix>1.4.1</VersionPrefix>
     <!-- Get Git commit hash at build time -->
     <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
-    <PackageReleaseNotes>**Feature and Bug Fix Release**
+    <PackageReleaseNotes>**Bug Fix Release**
 
-This release adds company field discovery capabilities and fixes several PowerShell and company search issues.
-
-**New Features:**
-- **Company Fields Command** (#113)
-  - Added `company fields` command for discovering custom fields in your Freshdesk instance
-  - List all available company fields with their types and properties
-  - Essential for building automated company management workflows
+This release fixes two bugs introduced in v1.4.0 that caused HTTP 400 errors on attachment downloads and ticket updates.
 
 **Bug Fixes:**
-- **Fixed PowerShell Completion Installation** (#110, #111)
-  - Removed duplicate 'update' key from PowerShell completion script
-  - Now installs to both PowerShell 5.1 and PowerShell 7 profile paths
-  - Improved compatibility across Windows PowerShell versions
+- **Fixed Attachment Download for Ticket-Level Attachments** (#122)
+  - `freshdesk attachment download` was returning HTTP 400 when downloading attachments linked to the ticket description (listed as `Source: Ticket` in `attachment list`)
+  - Root cause: the shared `HttpClient` was sending an `Authorization: Basic` header to Freshdesk's pre-signed AWS S3 download URLs, which S3 rejects when query-string auth is already present
+  - Fixed by adding `FreshdeskAuthHandler`, a delegating handler that strips the `Authorization` header from any request not bound for the Freshdesk host
+  - Conversation attachments (`Source: Conv #...`) were unaffected and continue to work as before
 
-- **Fixed Company Search JSON Deserialization** (#112)
-  - Added proper CompanySearchResult wrapper model for API responses
-  - Company search (`company search --name`) now works correctly
-  - Handles API response format properly
+- **Fixed `ticket update` HTTP 400 on Status and Priority Changes** (#127)
+  - `freshdesk ticket update &lt;id&gt; --status resolved` (and `--priority`) was failing with HTTP 400
+  - Root cause: the command was sending a full `Ticket` object with empty/default fields (Subject="", Id=0, etc.) rather than a partial payload
+  - Fixed by sending only the fields being updated, matching the pattern already used by `contact update` and `company update`
+
+**Technical Improvements:**
+- Updated .NET AOT toolchain from 9.0.13 to 9.0.16 to resolve CI build failures on current runtime versions
 
 **Installation:**
 Update using the self-update command:
