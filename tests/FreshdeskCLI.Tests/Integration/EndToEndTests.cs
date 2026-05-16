@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -241,10 +242,10 @@ public class EndToEndTests : IDisposable
 
         var client = new FreshdeskApiClient(config, _httpClient);
 
-        var updateData = new Ticket
+        var updateData = new Dictionary<string, object>
         {
-            Status = TicketStatus.Resolved,
-            Priority = TicketPriority.Low
+            ["status"] = 4,  // Resolved
+            ["priority"] = 1 // Low
         };
 
         var updatedTicket = new Ticket
@@ -256,7 +257,7 @@ public class EndToEndTests : IDisposable
             UpdatedAt = DateTimeOffset.Now
         };
 
-        _mockServer.SetupUpdateTicket(123, updateData, updatedTicket);
+        _mockServer.SetupUpdateTicket(123, updatedTicket);
 
         // Act
         var result = await client.UpdateTicketAsync(123, updateData);
@@ -427,11 +428,11 @@ public class EndToEndTests : IDisposable
         var client = new FreshdeskApiClient(config, _httpClient);
 
         var ticketIds = new long[] { 1, 2, 3 };
-        var updateData = new Ticket { Status = TicketStatus.Closed };
+        var updateData = new Dictionary<string, object> { ["status"] = 5 }; // Closed
 
         foreach (var id in ticketIds)
         {
-            _mockServer.SetupUpdateTicket(id, updateData, new Ticket
+            _mockServer.SetupUpdateTicket(id, new Ticket
             {
                 Id = id,
                 Status = TicketStatus.Closed,

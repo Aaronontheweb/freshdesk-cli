@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -222,10 +223,10 @@ public class FreshdeskApiClientTests
     public async Task UpdateTicketAsync_SendsCorrectRequest()
     {
         // Arrange
-        var updateTicket = new Ticket
+        var updates = new Dictionary<string, object>
         {
-            Status = TicketStatus.Resolved,
-            Priority = TicketPriority.Low
+            ["status"] = 4,  // Resolved
+            ["priority"] = 1 // Low
         };
 
         var updatedTicket = new Ticket
@@ -254,13 +255,64 @@ public class FreshdeskApiClientTests
             });
 
         // Act
-        var result = await _client.UpdateTicketAsync(789, updateTicket);
+        var result = await _client.UpdateTicketAsync(789, updates);
 
         // Assert
         Assert.NotNull(result);
         Assert.Equal(789, result.Id);
         Assert.Equal(TicketStatus.Resolved, result.Status);
         Assert.Equal(TicketPriority.Low, result.Priority);
+    }
+
+    [Fact]
+    public async Task UpdateTicketAsync_SendsOnlyChangedFields()
+    {
+        // Arrange
+        var updates = new Dictionary<string, object>
+        {
+            ["status"] = 4,  // Resolved
+            ["priority"] = 1 // Low
+        };
+
+        var updatedTicket = new Ticket
+        {
+            Id = 789,
+            Subject = "Updated Ticket",
+            Status = TicketStatus.Resolved,
+            Priority = TicketPriority.Low,
+            UpdatedAt = DateTimeOffset.Now
+        };
+
+        var responseJson = JsonSerializer.Serialize(updatedTicket, FreshdeskJsonContext.Default.Ticket);
+
+        string? requestBody = null;
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Put &&
+                    req.RequestUri!.PathAndQuery == "/api/v2/tickets/789"),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) =>
+                requestBody = req.Content!.ReadAsStringAsync().Result)
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(responseJson)
+            });
+
+        // Act
+        await _client.UpdateTicketAsync(789, updates);
+
+        // Assert - the payload must contain only the fields being updated,
+        // not a full Ticket object with empty/default fields (regression for #127).
+        Assert.NotNull(requestBody);
+        using var doc = JsonDocument.Parse(requestBody!);
+        var propertyNames = doc.RootElement.EnumerateObject().Select(p => p.Name).ToArray();
+        Assert.Equal(new[] { "status", "priority" }.OrderBy(x => x), propertyNames.OrderBy(x => x));
+        Assert.Equal(4, doc.RootElement.GetProperty("status").GetInt32());
+        Assert.Equal(1, doc.RootElement.GetProperty("priority").GetInt32());
     }
 
     [Fact]
