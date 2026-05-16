@@ -1,3 +1,41 @@
+#### 1.4.1 May 16th 2026 ####
+
+**Bug Fix Release**
+
+This release fixes two bugs introduced in v1.4.0 that caused HTTP 400 errors on attachment downloads and ticket updates.
+
+**Bug Fixes:**
+- **Fixed Attachment Download for Ticket-Level Attachments** (#122)
+  - `freshdesk attachment download` was returning HTTP 400 when downloading attachments linked to the ticket description (listed as `Source: Ticket` in `attachment list`)
+  - Root cause: the shared `HttpClient` was sending an `Authorization: Basic` header to Freshdesk's pre-signed AWS S3 download URLs, which S3 rejects when query-string auth is already present
+  - Fixed by adding `FreshdeskAuthHandler`, a delegating handler that strips the `Authorization` header from any request not bound for the Freshdesk host
+  - Conversation attachments (`Source: Conv #...`) were unaffected and continue to work as before
+
+- **Fixed `ticket update` HTTP 400 on Status and Priority Changes** (#127)
+  - `freshdesk ticket update <id> --status resolved` (and `--priority`) was failing with HTTP 400
+  - Root cause: the command was sending a full `Ticket` object with empty/default fields (Subject="", Id=0, etc.) rather than a partial payload
+  - Fixed by sending only the fields being updated, matching the pattern already used by `contact update` and `company update`
+
+**Technical Improvements:**
+- Updated .NET AOT toolchain from 9.0.13 to 9.0.16 to resolve CI build failures on current runtime versions
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.4.0 March 2nd 2026 ####
 
 **Feature and Bug Fix Release**
