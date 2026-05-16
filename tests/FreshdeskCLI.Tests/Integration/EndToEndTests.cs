@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using FreshdeskCLI.Models;
@@ -381,6 +382,28 @@ public class EndToEndTests : IDisposable
         Assert.True(File.Exists(filePath));
         var savedContent = await File.ReadAllBytesAsync(filePath);
         Assert.Equal(fileContent, savedContent);
+    }
+
+    [Fact]
+    public async Task DownloadAttachment_SurfacesHttpError()
+    {
+        // Arrange
+        var config = new FreshdeskConfig
+        {
+            Domain = "test",
+            ApiKey = "test-api-key-12345",
+            DefaultDownloadPath = _testDownloadPath
+        };
+
+        var client = new FreshdeskApiClient(config, _httpClient);
+
+        var attachmentUrl = "https://test.freshdesk.com/attachments/789";
+        _mockServer.SetupError("/attachments/789", HttpStatusCode.BadRequest);
+
+        // The 400 must surface as an exception, not be silently swallowed or routed
+        // to a non-existent fallback endpoint.
+        await Assert.ThrowsAsync<HttpRequestException>(
+            () => client.DownloadAttachmentAsync(attachmentUrl));
     }
 
     [Fact]
