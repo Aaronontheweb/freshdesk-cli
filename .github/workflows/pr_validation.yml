@@ -65,8 +65,12 @@ jobs:
           - os: macos-latest
             runtime: osx-arm64
             max-size-mb: 15
-          # Note: Cross-compilation requires special setup
-          # Using native architecture for each OS
+          - os: macos-latest
+            runtime: osx-x64
+            max-size-mb: 15
+          # Note: osx-x64 is cross-compiled on GitHub's arm64 macOS
+          # runners; it is built and size-checked but not executed,
+          # since the binary targets a different architecture.
 
     steps:
       - name: "Checkout"
@@ -90,6 +94,7 @@ jobs:
         run: dotnet publish src/FreshdeskCLI -c Release -r linux-x64 --self-contained /p:TrimmerSingleWarn=false /p:PublishTrimmed=true /p:TreatWarningsAsErrors=true /warnAsError:IL2026 /warnAsError:IL2057 /warnAsError:IL2067 /warnAsError:IL2075 /warnAsError:IL2096 /warnAsError:IL3050
 
       - name: "Test AOT binary"
+        if: matrix.runtime != 'osx-x64'
         shell: bash
         run: |
           if [[ "${{ matrix.runtime }}" == win-* ]]; then
