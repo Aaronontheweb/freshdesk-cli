@@ -1,3 +1,36 @@
+#### 1.4.2 May 18th 2026 ####
+
+**Packaging Fix Release**
+
+This release restores the macOS x64 (Intel) binary, which was missing from the 1.4.1 release. There are no functional changes to the CLI itself.
+
+**Fixes:**
+- **Restored the macOS x64 (Intel) build**
+  - The 1.4.1 release shipped without `freshdesk-1.4.1-osx-x64.tar.gz`, so the `install.sh` one-command installer failed on Intel Macs with a download error
+  - Root cause: the explicit `Microsoft.DotNet.ILCompiler` package reference prevented the .NET SDK from resolving the cross-compilation toolchain needed to build the Intel binary on GitHub's Apple Silicon (arm64) macOS runners
+  - Fixed by removing the explicit `Microsoft.DotNet.ILCompiler` and `Microsoft.NET.ILLink.Tasks` package references so the SDK manages the AOT/trimming toolchain (including cross-compilation packages) automatically
+
+- **Release workflow no longer publishes incomplete releases**
+  - The `create-release` job previously ran even when a platform build failed (`if: always()`), silently shipping a partial set of binaries
+  - It now requires every platform build to succeed before a release is created
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.4.1 May 16th 2026 ####
 
 **Bug Fix Release**
