@@ -2,27 +2,22 @@
 <Project>
   <PropertyGroup>
     <!-- Version configuration -->
-    <VersionPrefix>1.4.1</VersionPrefix>
+    <VersionPrefix>1.4.2</VersionPrefix>
     <!-- Get Git commit hash at build time -->
     <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
-    <PackageReleaseNotes>**Bug Fix Release**
+    <PackageReleaseNotes>**Packaging Fix Release**
 
-This release fixes two bugs introduced in v1.4.0 that caused HTTP 400 errors on attachment downloads and ticket updates.
+This release restores the macOS x64 (Intel) binary, which was missing from the 1.4.1 release. There are no functional changes to the CLI itself.
 
-**Bug Fixes:**
-- **Fixed Attachment Download for Ticket-Level Attachments** (#122)
-  - `freshdesk attachment download` was returning HTTP 400 when downloading attachments linked to the ticket description (listed as `Source: Ticket` in `attachment list`)
-  - Root cause: the shared `HttpClient` was sending an `Authorization: Basic` header to Freshdesk's pre-signed AWS S3 download URLs, which S3 rejects when query-string auth is already present
-  - Fixed by adding `FreshdeskAuthHandler`, a delegating handler that strips the `Authorization` header from any request not bound for the Freshdesk host
-  - Conversation attachments (`Source: Conv #...`) were unaffected and continue to work as before
+**Fixes:**
+- **Restored the macOS x64 (Intel) build**
+  - The 1.4.1 release shipped without `freshdesk-1.4.1-osx-x64.tar.gz`, so the `install.sh` one-command installer failed on Intel Macs with a download error
+  - Root cause: the explicit `Microsoft.DotNet.ILCompiler` package reference prevented the .NET SDK from resolving the cross-compilation toolchain needed to build the Intel binary on GitHub's Apple Silicon (arm64) macOS runners
+  - Fixed by removing the explicit `Microsoft.DotNet.ILCompiler` and `Microsoft.NET.ILLink.Tasks` package references so the SDK manages the AOT/trimming toolchain (including cross-compilation packages) automatically
 
-- **Fixed `ticket update` HTTP 400 on Status and Priority Changes** (#127)
-  - `freshdesk ticket update &lt;id&gt; --status resolved` (and `--priority`) was failing with HTTP 400
-  - Root cause: the command was sending a full `Ticket` object with empty/default fields (Subject="", Id=0, etc.) rather than a partial payload
-  - Fixed by sending only the fields being updated, matching the pattern already used by `contact update` and `company update`
-
-**Technical Improvements:**
-- Updated .NET AOT toolchain from 9.0.13 to 9.0.16 to resolve CI build failures on current runtime versions
+- **Release workflow no longer publishes incomplete releases**
+  - The `create-release` job previously ran even when a platform build failed, silently shipping a partial set of binaries
+  - It now requires every platform build to succeed before a release is created
 
 **Installation:**
 Update using the self-update command:
