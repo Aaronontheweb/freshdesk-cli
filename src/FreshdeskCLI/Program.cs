@@ -894,8 +894,8 @@ static async Task<int> HandleTicketReply(string[] args, FreshdeskCLI.Services.Fr
         return 1;
     }
 
-    string? message = null;
     string? filePath = null;
+    string? message = null;
 
     for (int i = 1; i < args.Length; i++)
     {
@@ -904,7 +904,10 @@ static async Task<int> HandleTicketReply(string[] args, FreshdeskCLI.Services.Fr
             case "--message":
             case "-m":
                 if (i + 1 < args.Length)
+                {
                     message = args[++i];
+                    Console.Error.WriteLine("Warning: --message is deprecated. Use --file instead. This will be removed in a future version.");
+                }
                 break;
             case "--file":
             case "-f":
@@ -914,7 +917,13 @@ static async Task<int> HandleTicketReply(string[] args, FreshdeskCLI.Services.Fr
         }
     }
 
-    // Get message from file if specified
+    if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(message))
+    {
+        Console.WriteLine("Error: --file is required for replies.");
+        Console.WriteLine("Run 'freshdesk ticket reply --help' for usage information.");
+        return 1;
+    }
+
     if (!string.IsNullOrEmpty(filePath))
     {
         if (!File.Exists(filePath))
@@ -922,25 +931,15 @@ static async Task<int> HandleTicketReply(string[] args, FreshdeskCLI.Services.Fr
             Console.WriteLine($"File not found: {filePath}");
             return 1;
         }
-        message = NormalizeLineEndings(await File.ReadAllTextAsync(filePath));
+
+        message = await File.ReadAllTextAsync(filePath);
     }
 
-    // If no message provided, prompt for it
-    if (string.IsNullOrEmpty(message))
-    {
-        Console.WriteLine("Enter your reply (press Ctrl+D or type 'EOF' on a new line when done):");
-        var lines = new List<string>();
-        string? line;
-        while ((line = Console.ReadLine()) != null && line != "EOF")
-        {
-            lines.Add(line);
-        }
-        message = string.Join("\n", lines);
-    }
+    message = NormalizeLineEndings(message!);
 
     if (string.IsNullOrEmpty(message))
     {
-        Console.WriteLine("No message provided.");
+        Console.WriteLine("No message provided (file is empty).");
         return 1;
     }
 
@@ -974,8 +973,8 @@ static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.Fre
         return 1;
     }
 
-    string? message = null;
     string? filePath = null;
+    string? message = null;
 
     for (int i = 1; i < args.Length; i++)
     {
@@ -984,7 +983,10 @@ static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.Fre
             case "--message":
             case "-m":
                 if (i + 1 < args.Length)
+                {
                     message = args[++i];
+                    Console.Error.WriteLine("Warning: --message is deprecated. Use --file instead. This will be removed in a future version.");
+                }
                 break;
             case "--file":
             case "-f":
@@ -994,7 +996,13 @@ static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.Fre
         }
     }
 
-    // Get message from file if specified
+    if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(message))
+    {
+        Console.WriteLine("Error: --file is required for notes.");
+        Console.WriteLine("Run 'freshdesk ticket note --help' for usage information.");
+        return 1;
+    }
+
     if (!string.IsNullOrEmpty(filePath))
     {
         if (!File.Exists(filePath))
@@ -1002,25 +1010,15 @@ static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.Fre
             Console.WriteLine($"File not found: {filePath}");
             return 1;
         }
-        message = NormalizeLineEndings(await File.ReadAllTextAsync(filePath));
+
+        message = await File.ReadAllTextAsync(filePath);
     }
 
-    // If no message provided, prompt for it
-    if (string.IsNullOrEmpty(message))
-    {
-        Console.WriteLine("Enter your internal note (press Ctrl+D or type 'EOF' on a new line when done):");
-        var lines = new List<string>();
-        string? line;
-        while ((line = Console.ReadLine()) != null && line != "EOF")
-        {
-            lines.Add(line);
-        }
-        message = string.Join("\n", lines);
-    }
+    message = NormalizeLineEndings(message!);
 
     if (string.IsNullOrEmpty(message))
     {
-        Console.WriteLine("No message provided.");
+        Console.WriteLine("No message provided (file is empty).");
         return 1;
     }
 

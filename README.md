@@ -4,11 +4,12 @@ A fast, lightweight command-line interface for [Freshdesk](https://www.freshwork
 
 ## Features
 
-- 🚀 **Fast & Lightweight** - Native AOT compilation for instant startup and small binary size (~3-5MB)
+- 🚀 **Fast & Lightweight** - Native AOT compilation for instant startup and small binary size (~11MB)
 - 🔒 **Read-Only Mode** - Safe exploration mode that prevents accidental modifications
 - 📊 **Multiple Output Formats** - Table (human-readable), JSON, CSV, XML, and Markdown formats
 - 👥 **Contact & Company Management** - Full CRUD operations for contacts and organizations
 - 🎫 **Ticket Management** - Create, update, search, and manage support tickets
+- 📝 **Markdown Replies & Notes** - Write replies and internal notes in Markdown, automatically converted to HTML
 - 📤 **Export Functionality** - Export tickets and conversations to multiple formats
 - 📥 **Bulk Downloads** - Download all attachments from tickets with progress indicators
 - 🔐 **Secure Credential Storage** - File-based with proper permissions and environment variable support
@@ -230,28 +231,28 @@ freshdesk ticket search --email john@example.com --format csv
 
 #### Reply to Tickets
 
+Reply content is read from a file (`--file` is required), treated as Markdown, and converted to HTML before being sent to Freshdesk. Raw HTML in the file is escaped rather than passed through.
+
 ```bash
-# Reply with message directly
-freshdesk ticket reply 123 --message "Thank you for your inquiry. We're looking into this."
+# Reply from a Markdown file
+freshdesk ticket reply 123 --file response.md
 
-# Reply from file
-freshdesk ticket reply 123 --file response.txt
-
-# Interactive reply (will prompt for message)
-freshdesk ticket reply 123
+# Plain text works too
+freshdesk ticket reply 123 -f response.txt
 ```
+
+> **Note:** `--message` is deprecated and will be removed in a future version. Use `--file` instead.
 
 #### Add Internal Notes
 
+Note content is read from a file (`--file` is required) and converted from Markdown to HTML, same as replies.
+
 ```bash
-# Add internal note directly
-freshdesk ticket note 123 --message "Customer has premium support, prioritize this."
+# Add note from a Markdown file
+freshdesk ticket note 123 --file internal-notes.md
 
-# Add note from file
-freshdesk ticket note 123 --file internal-notes.txt
-
-# Interactive note (will prompt)
-freshdesk ticket note 123
+# Plain text works too
+freshdesk ticket note 123 -f internal-notes.txt
 ```
 
 ### Contact Operations
@@ -558,9 +559,15 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 | `ticket create` | Create a new ticket |
 | `ticket update <id>` | Update ticket status/priority |
 | `ticket search <query>` | Search tickets |
-| `ticket reply <id>` | Reply to a ticket |
-| `ticket note <id>` | Add internal note to a ticket |
-| `ticket export` | Export tickets to JSON/CSV/XML/Markdown |
+| `ticket reply <id> --file <path>` | Reply to a ticket (Markdown file converted to HTML) |
+| `ticket note <id> --file <path>` | Add internal note to a ticket (Markdown file converted to HTML) |
+
+### Export Commands
+
+| Command | Description |
+|---------|-------------|
+| `export tickets` | Export multiple tickets to JSON/CSV/XML |
+| `export ticket <id>` | Export a single ticket to JSON/CSV/XML/Markdown |
 
 ### Contact Commands
 
@@ -729,7 +736,7 @@ echo $PATH
 ## Performance
 
 - **Startup Time**: < 50ms (native AOT)
-- **Binary Size**: ~3-5MB (platform dependent)
+- **Binary Size**: ~11MB (platform dependent)
 - **Memory Usage**: < 20MB typical
 - **Rate Limiting**: Automatic with exponential backoff
 

@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Linq;
+using Markdig;
 using FreshdeskCLI.Models;
 
 namespace FreshdeskCLI.Services;
@@ -252,7 +253,7 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
 
         var requestBody = new Dictionary<string, object>
         {
-            ["body"] = body
+            ["body"] = ConvertMarkdownToHtml(body)
         };
 
         if (isPrivate)
@@ -282,6 +283,30 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
         var response = await _httpClient.GetAsync(attachmentUrl, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+    }
+
+    // DisableHtml escapes raw HTML in the Markdown input while still rendering
+    // Markdown syntax to HTML for Freshdesk's body field. Freshdesk runs its own
+    // server-side HTML sanitizer on the body, so we don't duplicate that here;
+    // escaping raw HTML also means example payloads written as text survive intact
+    // instead of being stripped.
+    private static readonly Lazy<MarkdownPipeline> _markdownPipelineLazy =
+        new Lazy<MarkdownPipeline>(() =>
+            new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .UseEmojiAndSmiley()
+                .DisableHtml()
+                .Build());
+
+    private static MarkdownPipeline MarkdownPipeline => _markdownPipelineLazy.Value;
+
+    /// <summary>
+    /// Converts Markdown text to HTML for Freshdesk API consumption.
+    /// Freshdesk expects HTML in the body field and strips raw Markdown/newlines.
+    /// </summary>
+    internal static string ConvertMarkdownToHtml(string markdown)
+    {
+        return Markdown.ToHtml(markdown, MarkdownPipeline);
     }
 
     public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
