@@ -1,3 +1,44 @@
+#### 1.5.0 June 9th 2026 ####
+
+**Feature Release**
+
+This release adds programmatic Markdown-to-HTML conversion for ticket notes and replies, along with comprehensive XSS security testing.
+
+**New Features:**
+- **Markdown-to-HTML Conversion for Notes and Replies** (#134)
+  - `FreshdeskApiClient` now converts Markdown input to HTML before sending to the Freshdesk API
+  - Use `--file` flag with `ticket reply` and `ticket note` to read message content from a file (Markdown is automatically converted to HTML)
+  - The `--file` flag is now required for reply/note content that should be rendered as HTML
+  - Converts standard Markdown formatting (headers, bold, lists, links, etc.) to HTML
+
+**Security Improvements:**
+- **XSS Prevention** (#134)
+  - Raw HTML tags injected into Markdown input are now escaped (e.g., `<script>`, `<iframe>`, `<img onerror>`, `<svg onload>`)
+  - Safe Markdown formatting is still rendered correctly while dangerous raw HTML is neutralized
+  - Comprehensive test coverage with OWASP-style XSS payloads
+
+**Technical Improvements:**
+- Refactored `Program.cs` and `CommandHelp.cs` for cleaner command handling
+- Updated `FreshdeskApiClient` with dedicated Markdown-to-HTML conversion pipeline
+- Added 81 lines of new test coverage for Markdown conversion and XSS prevention
+- Updated CI dependencies: `actions/checkout` 5.0.0→6.0.3, `actions/setup-dotnet` 5.0.0→5.2.0
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
 #### 1.4.2 May 18th 2026 ####
 
 **Packaging Fix Release**
