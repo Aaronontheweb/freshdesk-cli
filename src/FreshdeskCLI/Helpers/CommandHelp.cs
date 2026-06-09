@@ -155,32 +155,32 @@ public static class CommandHelp
         },
         ["ticket reply"] = new CommandHelpInfo
         {
-            Usage = "freshdesk ticket reply <ticket-id> [options]",
-            Description = "Reply to a ticket",
+            Usage = "freshdesk ticket reply <ticket-id> --file <path>",
+            Description = "Reply to a ticket. The file content is treated as Markdown and converted to HTML.",
             Options = new Dictionary<string, string>
             {
-                ["--message, -m <text>"] = "Reply message (or will prompt)",
-                ["--file, -f <path>"] = "Read message from file"
+                ["--file, -f <path>"] = "Read reply message from file (required)",
+                ["--message, -m <text>"] = "[Deprecated] Inline reply message; use --file instead"
             },
             Examples = new[]
             {
-                "freshdesk ticket reply 123 --message \"Thanks for contacting us\"",
-                "freshdesk ticket reply 123 --file reply.txt"
+                "freshdesk ticket reply 123 --file reply.md",
+                "freshdesk ticket reply 123 -f reply.txt"
             }
         },
         ["ticket note"] = new CommandHelpInfo
         {
-            Usage = "freshdesk ticket note <ticket-id> [options]",
-            Description = "Add an internal note to a ticket",
+            Usage = "freshdesk ticket note <ticket-id> --file <path>",
+            Description = "Add an internal note to a ticket. The file content is treated as Markdown and converted to HTML.",
             Options = new Dictionary<string, string>
             {
-                ["--message, -m <text>"] = "Note message (or will prompt)",
-                ["--file, -f <path>"] = "Read message from file"
+                ["--file, -f <path>"] = "Read note message from file (required)",
+                ["--message, -m <text>"] = "[Deprecated] Inline note message; use --file instead"
             },
             Examples = new[]
             {
-                "freshdesk ticket note 123 --message \"Customer issue resolved\"",
-                "freshdesk ticket note 123 --file note.txt"
+                "freshdesk ticket note 123 --file note.md",
+                "freshdesk ticket note 123 -f note.txt"
             }
         },
         ["attachment"] = new CommandHelpInfo

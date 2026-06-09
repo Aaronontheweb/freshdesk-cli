@@ -6,6 +6,7 @@
   </PropertyGroup>
   <!-- App dependencies -->
   <ItemGroup>
+    <PackageVersion Include="Markdig" Version="0.40.0" />
   </ItemGroup>
   <!-- Test dependencies -->
   <ItemGroup>
