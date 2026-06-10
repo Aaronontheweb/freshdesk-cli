@@ -156,7 +156,7 @@ public static class CommandHelp
         ["ticket reply"] = new CommandHelpInfo
         {
             Usage = "freshdesk ticket reply <ticket-id> --file <path>",
-            Description = "Reply to a ticket. The file content is treated as Markdown and converted to HTML.",
+            Description = "Reply to a ticket. The file content is treated as Markdown and converted to HTML with preserved paragraph spacing.",
             Options = new Dictionary<string, string>
             {
                 ["--file, -f <path>"] = "Read reply message from file (required)",
@@ -171,7 +171,7 @@ public static class CommandHelp
         ["ticket note"] = new CommandHelpInfo
         {
             Usage = "freshdesk ticket note <ticket-id> --file <path>",
-            Description = "Add an internal note to a ticket. The file content is treated as Markdown and converted to HTML.",
+            Description = "Add an internal note to a ticket. The file content is treated as Markdown and converted to HTML with preserved paragraph spacing.",
             Options = new Dictionary<string, string>
             {
                 ["--file, -f <path>"] = "Read note message from file (required)",

@@ -18,8 +18,19 @@ public class MarkdownConversionTests
         var html = FreshdeskApiClient.ConvertMarkdownToHtml("- first\n- second");
 
         Assert.Contains("<ul>", html);
-        Assert.Contains("<li>first</li>", html);
-        Assert.Contains("<li>second</li>", html);
+        Assert.Contains("<li>first", html);
+        Assert.Contains("<li>second", html);
+    }
+
+    [Fact]
+    public void ConvertsParagraphsToFreshdeskSafeDivs()
+    {
+        var html = FreshdeskApiClient.ConvertMarkdownToHtml("First paragraph.\n\nSecond paragraph.");
+
+        Assert.Contains("<div>First paragraph.<br><br></div>", html);
+        Assert.Contains("<div>Second paragraph.<br><br></div>", html);
+        Assert.DoesNotContain("<p>", html);
+        Assert.DoesNotContain("</p>", html);
     }
 
     [Fact]
