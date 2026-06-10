@@ -1,23 +1,22 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
     <!-- Version configuration -->
-    <VersionPrefix>1.5.0</VersionPrefix>
+    <VersionPrefix>1.5.1</VersionPrefix>
     <!-- Get Git commit hash at build time -->
     <SourceRevisionId Condition="'$(SourceRevisionId)' == ''">$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</SourceRevisionId>
-    <PackageReleaseNotes>**Packaging Fix Release**
+    <PackageReleaseNotes>**Bug Fix Release**
 
-This release restores the macOS x64 (Intel) binary, which was missing from the 1.4.1 release. There are no functional changes to the CLI itself.
+This release fixes paragraph spacing in markdown-formatted ticket replies and notes so text no longer collapses after Freshdesk renders HTML.
 
-**Fixes:**
-- **Restored the macOS x64 (Intel) build**
-  - The 1.4.1 release shipped without `freshdesk-1.4.1-osx-x64.tar.gz`, so the `install.sh` one-command installer failed on Intel Macs with a download error
-  - Root cause: the explicit `Microsoft.DotNet.ILCompiler` package reference prevented the .NET SDK from resolving the cross-compilation toolchain needed to build the Intel binary on GitHub's Apple Silicon (arm64) macOS runners
-  - Fixed by removing the explicit `Microsoft.DotNet.ILCompiler` and `Microsoft.NET.ILLink.Tasks` package references so the SDK manages the AOT/trimming toolchain (including cross-compilation packages) automatically
+**Bug Fixes:**
+- **Preserve Paragraph Spacing in Markdown Replies and Notes** ([#136](https://github.com/Aaronontheweb/freshdesk-cli/pull/136))
+  - `ticket reply` and `ticket note` now keep paragraph breaks after Markdown-to-HTML conversion, preventing collapsed text in Freshdesk.
+  - Markdown content is rewritten into paragraph-safe HTML blocks so single and multi-paragraph messages retain readable spacing.
+  - Updated help text and tests to document and verify the improved spacing behavior.
 
-- **Release workflow no longer publishes incomplete releases**
-  - The `create-release` job previously ran even when a platform build failed, silently shipping a partial set of binaries
-  - It now requires every platform build to succeed before a release is created
+**Technical Improvements:**
+- Added spacing-safe conversion logic in markdown rendering to avoid paragraph collapse in list-heavy and standard markdown content.
 
 **Installation:**
 Update using the self-update command:

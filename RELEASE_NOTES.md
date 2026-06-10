@@ -1,3 +1,35 @@
+#### 1.5.1 2026-06-10 ####
+
+**Bug Fix Release**
+
+This release fixes paragraph spacing in markdown-formatted ticket replies and notes so text no longer collapses after Freshdesk renders HTML.
+
+**Bug Fixes:**
+- **Preserve Paragraph Spacing in Markdown Replies and Notes** ([#136](https://github.com/Aaronontheweb/freshdesk-cli/pull/136))
+  - `ticket reply` and `ticket note` now keep paragraph breaks after Markdown-to-HTML conversion, preventing collapsed text in Freshdesk.
+  - Markdown content is rewritten into paragraph-safe HTML blocks so single and multi-paragraph messages retain readable spacing.
+  - Updated help text and tests to document and verify the improved spacing behavior.
+
+**Technical Improvements:**
+- Added spacing-safe conversion logic in markdown rendering to avoid paragraph collapse in list-heavy and standard markdown content.
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.5.0 June 9th 2026 ####
 
 **Feature Release**
