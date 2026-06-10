@@ -231,7 +231,7 @@ freshdesk ticket search --email john@example.com --format csv
 
 #### Reply to Tickets
 
-Reply content is read from a file (`--file` is required), treated as Markdown, and converted to HTML before being sent to Freshdesk. Raw HTML in the file is escaped rather than passed through.
+Reply content is read from a file (`--file` is required), treated as Markdown, and converted to HTML before being sent to Freshdesk. Raw HTML in the file is escaped rather than passed through. Freshdesk HTML rewriting is handled with paragraph-safe output so blank lines and basic spacing are preserved.
 
 ```bash
 # Reply from a Markdown file
@@ -245,7 +245,7 @@ freshdesk ticket reply 123 -f response.txt
 
 #### Add Internal Notes
 
-Note content is read from a file (`--file` is required) and converted from Markdown to HTML, same as replies.
+Note content is read from a file (`--file` is required) and converted from Markdown to HTML, same as replies, with paragraph spacing preserved.
 
 ```bash
 # Add note from a Markdown file

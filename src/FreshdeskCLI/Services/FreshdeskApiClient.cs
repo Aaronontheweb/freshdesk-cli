@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Markdig;
 using FreshdeskCLI.Models;
 
@@ -298,6 +299,18 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
                 .DisableHtml()
                 .Build());
 
+    private static readonly Regex ParagraphRegex = new(
+        @"<p>(.*?)</p>",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Compiled);
+
+    private static readonly Regex ListItemOpenTagRegex = new(
+        @"<li\b[^>]*>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex ListItemCloseTagRegex = new(
+        @"</li\s*>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     private static MarkdownPipeline MarkdownPipeline => _markdownPipelineLazy.Value;
 
     /// <summary>
@@ -306,7 +319,31 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
     /// </summary>
     internal static string ConvertMarkdownToHtml(string markdown)
     {
-        return Markdown.ToHtml(markdown, MarkdownPipeline);
+        return MakeParagraphsFreshdeskSafe(Markdown.ToHtml(markdown, MarkdownPipeline));
+    }
+
+    private static string MakeParagraphsFreshdeskSafe(string html)
+    {
+        if (string.IsNullOrEmpty(html))
+        {
+            return html;
+        }
+
+        return ParagraphRegex.Replace(html, match =>
+        {
+            var content = match.Groups[1].Value;
+            var isInListItem = IsInsideListItem(html, match.Index);
+            var spacing = isInListItem ? "<br>" : "<br><br>";
+            return $"<div>{content}{spacing}</div>";
+        });
+    }
+
+    private static bool IsInsideListItem(string html, int paragraphStartIndex)
+    {
+        var beforeParagraph = html[..paragraphStartIndex];
+        var openListItemCount = ListItemOpenTagRegex.Matches(beforeParagraph).Count;
+        var closeListItemCount = ListItemCloseTagRegex.Matches(beforeParagraph).Count;
+        return openListItemCount > closeListItemCount;
     }
 
     public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
