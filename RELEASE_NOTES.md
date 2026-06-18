@@ -1,3 +1,48 @@
+#### 1.6.0 June 18th 2026 ####
+
+**Breaking Change Release**
+
+This release removes the `--message` / `-m` flags from both `ticket reply` and `ticket note` commands. File-based input via `--file` is now the only supported method.
+
+**Breaking Changes:**
+- **Removed `--message` / `-m` flag from `ticket reply`** ([#140](https://github.com/Aaronontheweb/freshdesk-cli/pull/140))
+  - Inline message replies are no longer supported
+  - Using `--message` or `-m` now shows a clear error redirecting users to `--file`
+  - This was a breaking change driven by persistent formatting issues that made inline messages unreliable
+- **Removed `--message` / `-m` flag from `ticket note`** ([#140](https://github.com/Aaronontheweb/freshdesk-cli/pull/140))
+  - Same removal for internal notes
+
+**Migration:**
+Instead of:
+```bash
+freshdesk ticket reply 609 --message "Hello world"
+```
+
+Write your reply to a file and use:
+```bash
+freshdesk ticket reply 609 --file reply.md
+```
+
+**Technical Improvements:**
+- Cleaner command parsing logic (removed deprecated flag handling code)
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.5.1 2026-06-10 ####
 
 **Bug Fix Release**
