@@ -23,6 +23,7 @@ public interface IFreshdeskApiClient
     Task<Ticket[]> SearchTicketsAsync(string query, int page = 1, CancellationToken cancellationToken = default);
 
     Task<Contact[]> GetContactsAsync(int page = 1, int limit = 30, CancellationToken cancellationToken = default);
+    Task<Contact[]> GetCompanyContactsAsync(long companyId, int page = 1, int limit = 30, CancellationToken cancellationToken = default);
     Task<Contact?> GetContactAsync(long id, CancellationToken cancellationToken = default);
     Task<Contact> CreateContactAsync(Dictionary<string, object> contactData, CancellationToken cancellationToken = default);
     Task<Contact> UpdateContactAsync(long id, Dictionary<string, object> updates, CancellationToken cancellationToken = default);
@@ -445,6 +446,14 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
     public async Task<Contact[]> GetContactsAsync(int page = 1, int limit = 30, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync($"/api/v2/contacts?page={page}&per_page={limit}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ContactArray) ?? [];
+    }
+
+    public async Task<Contact[]> GetCompanyContactsAsync(long companyId, int page = 1, int limit = 30, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetAsync($"/api/v2/companies/{companyId}/contacts?page={page}&per_page={limit}", cancellationToken);
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
         return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ContactArray) ?? [];

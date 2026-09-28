@@ -266,6 +266,9 @@ freshdesk contact list
 # With pagination
 freshdesk contact list --page 2 --limit 50
 
+# Filter by company
+freshdesk contact list --company 12345
+
 # Export as JSON or CSV
 freshdesk contact list --format json
 freshdesk contact list --format csv > contacts.csv
