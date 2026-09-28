@@ -1,3 +1,44 @@
+#### 1.7.0 September 28th 2026 ####
+
+**Feature Release**
+
+This release adds a way to send contact activation emails, a company filter for `contact list`, and fixes `contact search`.
+
+**New Features:**
+- **`contact send-invite <id>` and `contact create --send-invite`** ([#150](https://github.com/Aaronontheweb/freshdesk-cli/pull/150))
+  - Sends the Freshdesk activation email through the documented `send_invite` endpoint, so new contacts can log in to the support portal
+  - If the invite fails after `contact create`, the CLI prints the new contact ID and the command to retry
+  - Blocked in `--read-only` mode
+- **`contact list --company <id>`** ([#151](https://github.com/Aaronontheweb/freshdesk-cli/pull/151))
+  - Lists only the contacts in one company (`--company-id` also works)
+  - A missing or non-numeric ID now fails with an error instead of listing every contact
+
+**Bug Fixes:**
+- **`contact search` returned empty results for known contacts** ([#152](https://github.com/Aaronontheweb/freshdesk-cli/pull/152))
+  - Uses the Freshdesk filter API with correctly quoted values
+  - New `--page` (1-10) and `--all` options reach results past the first 30; a note on stderr says when results are cut off
+  - New `--mobile` option
+  - Partial or domain-only emails such as `@example.com` now fail with a clear error, because Freshdesk only matches exact values
+  - Values containing quotes are rejected, since the API has no way to escape them
+  - Use `--format json` for output you can pipe to `jq`
+
+**Installation:**
+Update using the self-update command:
+```bash
+freshdesk update
+```
+
+Or use the one-command installer:
+```bash
+curl -sSL https://raw.githubusercontent.com/Aaronontheweb/freshdesk-cli/dev/install.sh | bash
+```
+
+**Platform Support:**
+- Linux x64
+- macOS x64 (Intel)
+- macOS ARM64 (Apple Silicon)
+- Windows x64
+
 #### 1.6.0 June 18th 2026 ####
 
 **Breaking Change Release**
