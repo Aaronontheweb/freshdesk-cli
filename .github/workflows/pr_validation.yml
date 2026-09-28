@@ -125,7 +125,7 @@ jobs:
           fi
 
       - name: "Upload AOT artifact"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: freshdesk-${{ matrix.runtime }}
           path: ./publish/${{ matrix.runtime }}/
