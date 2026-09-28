@@ -2255,7 +2255,10 @@ static async Task<int> HandleContactSearch(string[] args, FreshdeskCLI.Services.
 
     string? email = null;
     string? phone = null;
+    string? mobile = null;
     string format = "table";
+    var page = 1;
+    var fetchAll = false;
 
     for (int i = 0; i < args.Length; i++)
     {
@@ -2267,20 +2270,65 @@ static async Task<int> HandleContactSearch(string[] args, FreshdeskCLI.Services.
             case "--phone" when i + 1 < args.Length:
                 phone = args[++i];
                 break;
-            case "--format" when i + 1 < args.Length:
+            case "--mobile" when i + 1 < args.Length:
+                mobile = args[++i];
+                break;
+            case "--format" or "-f" when i + 1 < args.Length:
                 format = args[++i];
+                break;
+            case "--page" when i + 1 < args.Length:
+                if (!int.TryParse(args[++i], out page) || page < 1 || page > FreshdeskCLI.Services.FreshdeskApiClient.MaxSearchPage)
+                {
+                    Console.Error.WriteLine($"Error: --page must be a number between 1 and {FreshdeskCLI.Services.FreshdeskApiClient.MaxSearchPage}.");
+                    return 1;
+                }
+                break;
+            case "--all":
+                fetchAll = true;
                 break;
         }
     }
 
-    if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(phone))
+    if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(phone) && string.IsNullOrWhiteSpace(mobile))
     {
-        Console.WriteLine("Error: At least one of --email or --phone is required.");
+        Console.Error.WriteLine("Error: At least one of --email, --phone or --mobile is required.");
         return 1;
     }
 
-    var contacts = await client.SearchContactsAsync(email, phone);
-    OutputFormatter.PrintContacts(contacts, format);
+    try
+    {
+        FreshdeskCLI.Services.FreshdeskApiClient.BuildContactSearchQuery(email, phone, mobile);
+    }
+    catch (ArgumentException ex)
+    {
+        Console.Error.WriteLine($"Error: {ex.Message}");
+        return 1;
+    }
+
+    var maxPage = FreshdeskCLI.Services.FreshdeskApiClient.MaxSearchPage;
+    var pageSize = FreshdeskCLI.Services.FreshdeskApiClient.SearchPageSize;
+    var first = await client.SearchContactsAsync(email, phone, mobile, fetchAll ? 1 : page);
+    var contacts = new List<FreshdeskCLI.Models.Contact>(first.Results);
+    var total = first.Total;
+
+    if (fetchAll)
+    {
+        var lastPage = first;
+        for (var next = 2; next <= maxPage && lastPage.Results.Length >= pageSize && contacts.Count < total; next++)
+        {
+            lastPage = await client.SearchContactsAsync(email, phone, mobile, next);
+            contacts.AddRange(lastPage.Results);
+        }
+    }
+
+    OutputFormatter.PrintContacts(contacts.ToArray(), format);
+
+    if (contacts.Count < total)
+    {
+        var limitNote = fetchAll ? $" (Freshdesk returns at most {maxPage * pageSize} search results)" : "; use --page or --all";
+        Console.Error.WriteLine($"Showing {contacts.Count} of {total} matches{limitNote}.");
+    }
+
     return 0;
 }
 

@@ -26,7 +26,7 @@ public interface IFreshdeskApiClient
     Task<Contact?> GetContactAsync(long id, CancellationToken cancellationToken = default);
     Task<Contact> CreateContactAsync(Dictionary<string, object> contactData, CancellationToken cancellationToken = default);
     Task<Contact> UpdateContactAsync(long id, Dictionary<string, object> updates, CancellationToken cancellationToken = default);
-    Task<Contact[]> SearchContactsAsync(string? email = null, string? phone = null, CancellationToken cancellationToken = default);
+    Task<ContactSearchResult> SearchContactsAsync(string? email = null, string? phone = null, string? mobile = null, int page = 1, CancellationToken cancellationToken = default);
     Task DeleteContactAsync(long id, CancellationToken cancellationToken = default);
 
     Task<Company[]> GetCompaniesAsync(int page = 1, int limit = 30, CancellationToken cancellationToken = default);
@@ -484,27 +484,58 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
         return JsonSerializer.Deserialize(responseJson, FreshdeskJsonContext.Default.Contact)!;
     }
 
-    public async Task<Contact[]> SearchContactsAsync(string? email = null, string? phone = null, CancellationToken cancellationToken = default)
+    public const int MaxSearchQueryLength = 512;
+    public const int MaxSearchPage = 10;
+    public const int SearchPageSize = 30;
+
+    public static string BuildContactSearchQuery(string? email, string? phone, string? mobile)
     {
         var queryParts = new List<string>();
         if (!string.IsNullOrWhiteSpace(email))
-            queryParts.Add($"email:{email}");
-        if (!string.IsNullOrWhiteSpace(phone))
-            queryParts.Add($"phone:{phone}");
+        {
+            var value = email.Trim();
+            if (value.IndexOf('@') <= 0)
+                throw new ArgumentException($"--email must be a full email address such as name@example.com. Freshdesk contact search matches exact values only, so domain or partial matches like '{value}' are not supported.");
+            queryParts.Add(BuildContactSearchTerm("email", value));
+        }
 
-        if (queryParts.Count == 0)
-            return [];
+        if (!string.IsNullOrWhiteSpace(phone))
+            queryParts.Add(BuildContactSearchTerm("phone", phone.Trim()));
+        if (!string.IsNullOrWhiteSpace(mobile))
+            queryParts.Add(BuildContactSearchTerm("mobile", mobile.Trim()));
 
         var query = string.Join(" AND ", queryParts);
-        var endpoint = $"/api/v2/search/contacts?query=\"{Uri.EscapeDataString(query)}\"";
+        if (query.Length > MaxSearchQueryLength)
+            throw new ArgumentException($"Search query is {query.Length} characters; Freshdesk allows at most {MaxSearchQueryLength}.");
+
+        return query;
+    }
+
+    private static string BuildContactSearchTerm(string field, string value)
+    {
+        if (value.Contains('\'') || value.Contains('"'))
+            throw new ArgumentException($"--{field} must not contain single or double quotes; Freshdesk search has no escape for them.");
+
+        return $"{field}:'{value}'";
+    }
+
+    public async Task<ContactSearchResult> SearchContactsAsync(string? email = null, string? phone = null, string? mobile = null, int page = 1, CancellationToken cancellationToken = default)
+    {
+        var query = BuildContactSearchQuery(email, phone, mobile);
+        if (query.Length == 0)
+            return new ContactSearchResult();
+
+        if (page < 1 || page > MaxSearchPage)
+            throw new ArgumentOutOfRangeException(nameof(page), $"Page must be between 1 and {MaxSearchPage}.");
+
+        var endpoint = $"/api/v2/search/contacts?query=\"{Uri.EscapeDataString(query)}\"&page={page}";
         var response = await _httpClient.GetAsync(endpoint, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
-            return [];
+            return new ContactSearchResult();
 
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        var searchResult = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ContactSearchResult);
-        return searchResult?.Results ?? [];
+        return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ContactSearchResult) ?? new ContactSearchResult();
     }
 
     public async Task DeleteContactAsync(long id, CancellationToken cancellationToken = default)

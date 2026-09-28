@@ -384,18 +384,22 @@ public static class CommandHelp
         ["contact search"] = new CommandHelpInfo
         {
             Usage = "freshdesk contact search [options]",
-            Description = "Search for contacts by email or phone (full-text search via /search/contacts)",
+            Description = "Find contacts by exact email, phone, or mobile (Freshdesk filter API; no partial or domain matching)",
             Options = new Dictionary<string, string>
             {
-                ["--email <email>"] = "Search by email address",
-                ["--phone <phone>"] = "Search by phone number",
-                ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
+                ["--email <email>"] = "Full email address to match exactly",
+                ["--phone <phone>"] = "Phone number to match exactly",
+                ["--mobile <mobile>"] = "Mobile number to match exactly",
+                ["--page <n>"] = "Result page, 1-10, 30 contacts per page (default: 1)",
+                ["--all"] = "Fetch every page (up to 10 pages, 300 contacts)",
+                ["--format, -f <format>"] = "Output format (table, json, csv) (default: table); use json for scripting"
             },
             Examples = new[]
             {
                 "freshdesk contact search --email john@example.com",
-                "freshdesk contact search --phone \"+1234567890\"",
-                "freshdesk contact search --email example.com --format json"
+                "freshdesk contact search --phone \"+1234567890\" --mobile \"+1987654321\"",
+                "freshdesk contact search --email john@example.com --format json | jq '.[].id'",
+                "freshdesk contact search --phone \"+1234567890\" --all --format csv"
             }
         },
         ["contact delete"] = new CommandHelpInfo

@@ -644,20 +644,9 @@ public class FreshdeskApiClientTests
         Assert.False(result.ViewAllTickets);
     }
 
-    [Fact]
-    public async Task SearchContactsAsync_ByEmail_ReturnsContacts()
+    private void SetupContactSearch(string expectedQuery, ContactSearchResult body)
     {
-        // Arrange
-        var searchResult = new ContactSearchResult
-        {
-            Total = 1,
-            Results = new[]
-            {
-                new Contact { Id = 1, Name = "John Doe", Email = "john@example.com" }
-            }
-        };
-
-        var json = JsonSerializer.Serialize(searchResult, FreshdeskJsonContext.Default.ContactSearchResult);
+        var json = JsonSerializer.Serialize(body, FreshdeskJsonContext.Default.ContactSearchResult);
 
         _mockHttpHandler
             .Protected()
@@ -665,21 +654,118 @@ public class FreshdeskApiClientTests
                 "SendAsync",
                 ItExpr.Is<HttpRequestMessage>(req =>
                     req.RequestUri!.AbsolutePath == "/api/v2/search/contacts" &&
-                    Uri.UnescapeDataString(req.RequestUri!.Query).TrimStart('?') == $"query=\"email:john@example.com\""),
+                    Uri.UnescapeDataString(req.RequestUri!.Query).TrimStart('?') == expectedQuery),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
                 Content = new StringContent(json)
             });
+    }
 
-        // Act
+    [Fact]
+    public async Task SearchContactsAsync_ByEmail_ReturnsContacts()
+    {
+        SetupContactSearch("query=\"email:'john@example.com'\"&page=1", new ContactSearchResult
+        {
+            Total = 1,
+            Results = [new Contact { Id = 1, Name = "John Doe", Email = "john@example.com" }]
+        });
+
         var result = await _client.SearchContactsAsync(email: "john@example.com");
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.Single(result);
-        Assert.Equal("john@example.com", result[0].Email);
+        Assert.Equal(1, result.Total);
+        Assert.Single(result.Results);
+        Assert.Equal("john@example.com", result.Results[0].Email);
+    }
+
+    [Fact]
+    public async Task SearchContactsAsync_EmailAndPhone_ComposesWithAnd()
+    {
+        SetupContactSearch("query=\"email:'john@example.com' AND phone:'+1234567890'\"&page=1", new ContactSearchResult
+        {
+            Total = 1,
+            Results = [new Contact { Id = 1, Name = "John Doe", Email = "john@example.com" }]
+        });
+
+        var result = await _client.SearchContactsAsync(email: "john@example.com", phone: "+1234567890");
+
+        Assert.Single(result.Results);
+    }
+
+    [Fact]
+    public async Task SearchContactsAsync_MobileOnly_UsesMobileField()
+    {
+        SetupContactSearch("query=\"mobile:'555'\"&page=1", new ContactSearchResult
+        {
+            Total = 1,
+            Results = [new Contact { Id = 2, Name = "Jane" }]
+        });
+
+        var result = await _client.SearchContactsAsync(mobile: "555");
+
+        Assert.Single(result.Results);
+    }
+
+    [Fact]
+    public async Task SearchContactsAsync_PageParameter_IsSent()
+    {
+        SetupContactSearch("query=\"phone:'555'\"&page=3", new ContactSearchResult
+        {
+            Total = 75,
+            Results = [new Contact { Id = 61, Name = "Page Three" }]
+        });
+
+        var result = await _client.SearchContactsAsync(phone: "555", page: 3);
+
+        Assert.Equal(75, result.Total);
+        Assert.Equal(61, result.Results[0].Id);
+    }
+
+    [Fact]
+    public async Task SearchContactsAsync_TotalGreaterThanResults_SurfacesTotal()
+    {
+        SetupContactSearch("query=\"phone:'555'\"&page=1", new ContactSearchResult
+        {
+            Total = 57,
+            Results = [new Contact { Id = 1, Name = "A" }, new Contact { Id = 2, Name = "B" }]
+        });
+
+        var result = await _client.SearchContactsAsync(phone: "555");
+
+        Assert.Equal(57, result.Total);
+        Assert.Equal(2, result.Results.Length);
+    }
+
+    [Theory]
+    [InlineData("o'brien@example.com")]
+    [InlineData("a\"b@example.com")]
+    public async Task SearchContactsAsync_QuoteInValue_ThrowsArgumentException(string email)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => _client.SearchContactsAsync(email: email));
+    }
+
+    [Theory]
+    [InlineData("@acme.com")]
+    [InlineData("acme.com")]
+    public async Task SearchContactsAsync_EmailWithoutLocalPart_ThrowsArgumentException(string email)
+    {
+        var ex = await Assert.ThrowsAsync<ArgumentException>(() => _client.SearchContactsAsync(email: email));
+        Assert.Contains("exact", ex.Message);
+    }
+
+    [Fact]
+    public async Task SearchContactsAsync_QueryOver512Chars_ThrowsArgumentException()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => _client.SearchContactsAsync(phone: new string('1', 600)));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(11)]
+    public async Task SearchContactsAsync_PageOutOfRange_Throws(int page)
+    {
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => _client.SearchContactsAsync(phone: "555", page: page));
     }
 
     [Fact]
@@ -687,8 +773,8 @@ public class FreshdeskApiClientTests
     {
         var result = await _client.SearchContactsAsync(email: null, phone: null);
 
-        Assert.NotNull(result);
-        Assert.Empty(result);
+        Assert.Empty(result.Results);
+        Assert.Equal(0, result.Total);
     }
 
     [Fact]
