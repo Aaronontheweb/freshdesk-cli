@@ -317,6 +317,12 @@ freshdesk contact create \
   --name "VIP Customer" \
   --email "vip@example.com" \
   --custom-field account_tier="Premium"
+
+# Create an active contact (fires the activation email)
+freshdesk contact create \
+  --name "John Doe" \
+  --email "john@example.com" \
+  --active
 ```
 
 #### Update Contact
@@ -335,6 +341,12 @@ freshdesk contact update 12345 --company-id 67890
 
 # Disable view all tickets
 freshdesk contact update 12345 --view-all-tickets false
+
+# Activate a contact (fires the activation email)
+freshdesk contact update 12345 --active
+
+# Deactivate a contact
+freshdesk contact update 12345 --no-active
 ```
 
 #### Search Contacts

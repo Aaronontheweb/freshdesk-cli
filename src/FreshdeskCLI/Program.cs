@@ -2143,6 +2143,20 @@ static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.
             case "--no-view-all-tickets":
                 contactData["view_all_tickets"] = false;
                 break;
+            case "--active":
+                if (i + 1 < args.Length && bool.TryParse(args[i + 1], out var activeCreate))
+                {
+                    contactData["active"] = activeCreate;
+                    i++;
+                }
+                else
+                {
+                    contactData["active"] = true;
+                }
+                break;
+            case "--no-active":
+                contactData["active"] = false;
+                break;
             case "--description" when i + 1 < args.Length:
                 contactData["description"] = args[++i];
                 break;
@@ -2227,6 +2241,20 @@ static async Task<int> HandleContactUpdate(string[] args, FreshdeskCLI.Services.
                 break;
             case "--no-view-all-tickets":
                 updates["view_all_tickets"] = false;
+                break;
+            case "--active":
+                if (i + 1 < args.Length && bool.TryParse(args[i + 1], out var activeUpdate))
+                {
+                    updates["active"] = activeUpdate;
+                    i++;
+                }
+                else
+                {
+                    updates["active"] = true;
+                }
+                break;
+            case "--no-active":
+                updates["active"] = false;
                 break;
             case "--description" when i + 1 < args.Length:
                 updates["description"] = args[++i];

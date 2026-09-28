@@ -347,6 +347,8 @@ public static class CommandHelp
                 ["--company-id, --company <id>"] = "Company ID to associate with",
                 ["--view-all-tickets"] = "Allow contact to view all company tickets (flag or true/false)",
                 ["--no-view-all-tickets"] = "Prevent contact from viewing all company tickets",
+                ["--active"] = "Mark contact as active, firing the activation email (flag or true/false)",
+                ["--no-active"] = "Mark contact as inactive",
                 ["--description <desc>"] = "Contact description",
                 ["--address <address>"] = "Contact address",
                 ["--custom-field <key=value>"] = "Set a custom field (repeatable)"
@@ -355,7 +357,8 @@ public static class CommandHelp
             {
                 "freshdesk contact create --name \"John Doe\" --email john@example.com",
                 "freshdesk contact create --name \"Jane\" --email jane@example.com --company 123 --view-all-tickets",
-                "freshdesk contact create --name \"Bob\" --email bob@example.com --job-title \"Engineer\" --phone \"+1234567890\""
+                "freshdesk contact create --name \"Bob\" --email bob@example.com --job-title \"Engineer\" --phone \"+1234567890\"",
+                "freshdesk contact create --name \"Alice\" --email alice@example.com --active"
             }
         },
         ["contact update"] = new CommandHelpInfo
@@ -372,13 +375,16 @@ public static class CommandHelp
                 ["--company-id, --company <id>"] = "Company ID to associate with",
                 ["--view-all-tickets"] = "Allow contact to view all company tickets (flag or true/false)",
                 ["--no-view-all-tickets"] = "Prevent contact from viewing all company tickets",
+                ["--active"] = "Mark contact as active, firing the activation email (flag or true/false)",
+                ["--no-active"] = "Mark contact as inactive",
                 ["--description <desc>"] = "Contact description"
             },
             Examples = new[]
             {
                 "freshdesk contact update 123 --name \"Jane Smith\"",
                 "freshdesk contact update 123 --company 456 --view-all-tickets",
-                "freshdesk contact update 123 --no-view-all-tickets"
+                "freshdesk contact update 123 --no-view-all-tickets",
+                "freshdesk contact update 123 --active"
             }
         },
         ["contact search"] = new CommandHelpInfo
