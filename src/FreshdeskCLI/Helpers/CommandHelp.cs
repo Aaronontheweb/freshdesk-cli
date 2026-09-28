@@ -305,12 +305,14 @@ public static class CommandHelp
             {
                 ["--page, -p <number>"] = "Page number (default: 1)",
                 ["--limit, -l <number>"] = "Items per page (default: 30)",
+                ["--company, --company-id <id>"] = "Filter contacts by company ID",
                 ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
             },
             Examples = new[]
             {
                 "freshdesk contact list",
                 "freshdesk contact list --page 2 --limit 50",
+                "freshdesk contact list --company 12345",
                 "freshdesk contact list --format json"
             }
         },
