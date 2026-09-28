@@ -318,11 +318,11 @@ freshdesk contact create \
   --email "vip@example.com" \
   --custom-field account_tier="Premium"
 
-# Create an active contact (fires the activation email)
+# Create a contact and send the activation email
 freshdesk contact create \
   --name "John Doe" \
   --email "john@example.com" \
-  --active
+  --send-invite
 ```
 
 #### Update Contact
@@ -341,12 +341,6 @@ freshdesk contact update 12345 --company-id 67890
 
 # Disable view all tickets
 freshdesk contact update 12345 --view-all-tickets false
-
-# Activate a contact (fires the activation email)
-freshdesk contact update 12345 --active
-
-# Deactivate a contact
-freshdesk contact update 12345 --no-active
 ```
 
 #### Search Contacts
@@ -367,6 +361,13 @@ freshdesk contact search --email john@example.com --format json
 ```bash
 # Delete a contact
 freshdesk contact delete 12345
+```
+
+#### Send Activation Email
+
+```bash
+# Send an activation email to an existing contact (PUT /contacts/{id}/send_invite)
+freshdesk contact send-invite 12345
 ```
 
 ### Company Operations
@@ -591,6 +592,7 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 | `contact update <id>` | Update contact details |
 | `contact search` | Search contacts by email or phone |
 | `contact delete <id>` | Delete a contact |
+| `contact send-invite <id>` | Send an activation email to a contact |
 
 ### Company Commands
 

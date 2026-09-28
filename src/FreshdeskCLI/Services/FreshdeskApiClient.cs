@@ -28,6 +28,7 @@ public interface IFreshdeskApiClient
     Task<Contact> UpdateContactAsync(long id, Dictionary<string, object> updates, CancellationToken cancellationToken = default);
     Task<Contact[]> SearchContactsAsync(string? email = null, string? phone = null, CancellationToken cancellationToken = default);
     Task DeleteContactAsync(long id, CancellationToken cancellationToken = default);
+    Task SendContactInviteAsync(long id, CancellationToken cancellationToken = default);
 
     Task<Company[]> GetCompaniesAsync(int page = 1, int limit = 30, CancellationToken cancellationToken = default);
     Task<Company?> GetCompanyAsync(long id, CancellationToken cancellationToken = default);
@@ -507,6 +508,12 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
     public async Task DeleteContactAsync(long id, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.DeleteAsync($"/api/v2/contacts/{id}", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task SendContactInviteAsync(long id, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.PutAsync($"/api/v2/contacts/{id}/send_invite", null, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 

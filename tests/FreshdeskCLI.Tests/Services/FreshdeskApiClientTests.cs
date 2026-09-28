@@ -557,7 +557,6 @@ public class FreshdeskApiClientTests
             ["email"] = "new@example.com",
             ["company_id"] = 789L,
             ["view_all_tickets"] = true,
-            ["active"] = true,
             ["phone"] = "555-1234"
         };
 
@@ -575,7 +574,6 @@ public class FreshdeskApiClientTests
 
         var responseJson = JsonSerializer.Serialize(createdContact, FreshdeskJsonContext.Default.Contact);
 
-        string? requestBody = null;
         _mockHttpHandler
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -584,7 +582,6 @@ public class FreshdeskApiClientTests
                     req.Method == HttpMethod.Post &&
                     req.RequestUri!.PathAndQuery == "/api/v2/contacts"),
                 ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) => requestBody = await req.Content!.ReadAsStringAsync())
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.Created,
@@ -600,8 +597,6 @@ public class FreshdeskApiClientTests
         Assert.Equal("New Contact", result.Name);
         Assert.True(result.ViewAllTickets);
         Assert.Equal(789, result.CompanyId);
-        using var requestDoc = JsonDocument.Parse(requestBody!);
-        Assert.True(requestDoc.RootElement.GetProperty("active").GetBoolean());
     }
 
     [Fact]
@@ -611,8 +606,7 @@ public class FreshdeskApiClientTests
         var updates = new Dictionary<string, object>
         {
             ["name"] = "Updated Contact",
-            ["view_all_tickets"] = false,
-            ["active"] = true
+            ["view_all_tickets"] = false
         };
 
         var updatedContact = new Contact
@@ -621,13 +615,11 @@ public class FreshdeskApiClientTests
             Name = "Updated Contact",
             Email = "updated@example.com",
             ViewAllTickets = false,
-            Active = true,
             UpdatedAt = DateTimeOffset.Now
         };
 
         var responseJson = JsonSerializer.Serialize(updatedContact, FreshdeskJsonContext.Default.Contact);
 
-        string? requestBody = null;
         _mockHttpHandler
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -636,7 +628,6 @@ public class FreshdeskApiClientTests
                     req.Method == HttpMethod.Put &&
                     req.RequestUri!.PathAndQuery == "/api/v2/contacts/202"),
                 ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>(async (req, _) => requestBody = await req.Content!.ReadAsStringAsync())
             .ReturnsAsync(new HttpResponseMessage
             {
                 StatusCode = HttpStatusCode.OK,
@@ -651,8 +642,6 @@ public class FreshdeskApiClientTests
         Assert.Equal(202, result.Id);
         Assert.Equal("Updated Contact", result.Name);
         Assert.False(result.ViewAllTickets);
-        using var requestDoc = JsonDocument.Parse(requestBody!);
-        Assert.True(requestDoc.RootElement.GetProperty("active").GetBoolean());
     }
 
     [Fact]
@@ -706,6 +695,42 @@ public class FreshdeskApiClientTests
 
         // Act & Assert - should not throw
         await _client.DeleteContactAsync(303);
+    }
+
+    [Fact]
+    public async Task SendContactInviteAsync_SendsPutToSendInviteEndpoint()
+    {
+        HttpRequestMessage? captured = null;
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => captured = req)
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.NoContent });
+
+        await _client.SendContactInviteAsync(404);
+
+        Assert.NotNull(captured);
+        Assert.Equal(HttpMethod.Put, captured!.Method);
+        Assert.Equal("/api/v2/contacts/404/send_invite", captured.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task SendContactInviteAsync_ThrowsOnNotFound()
+    {
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Put &&
+                    req.RequestUri!.PathAndQuery == "/api/v2/contacts/999/send_invite"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.NotFound });
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => _client.SendContactInviteAsync(999));
     }
 
     [Fact]
