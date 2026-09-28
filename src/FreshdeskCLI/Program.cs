@@ -150,6 +150,7 @@ static void ShowHelp(string? versionInfo = null)
     Console.WriteLine("  contact update    Update a contact");
     Console.WriteLine("  contact search    Search for contacts");
     Console.WriteLine("  contact delete    Delete a contact");
+    Console.WriteLine("  contact send-invite  Send an activation email to a contact");
     Console.WriteLine("  company list      List companies");
     Console.WriteLine("  company get       Get company details");
     Console.WriteLine("  company create    Create a new company");
@@ -894,48 +895,53 @@ static async Task<int> HandleTicketReply(string[] args, FreshdeskCLI.Services.Fr
         return 1;
     }
 
-    string? filePath = null;
-    string? message = null;
-
-    for (int i = 1; i < args.Length; i++)
+    // Scan for --message/-m usage and redirect users
+    foreach (var arg in args)
     {
-        switch (args[i])
+        if (arg == "--message" || arg == "-m")
         {
-            case "--message":
-            case "-m":
-                if (i + 1 < args.Length)
-                {
-                    message = args[++i];
-                    Console.Error.WriteLine("Warning: --message is deprecated. Use --file instead. This will be removed in a future version.");
-                }
-                break;
-            case "--file":
-            case "-f":
-                if (i + 1 < args.Length)
-                    filePath = args[++i];
-                break;
+            Console.Error.WriteLine("");
+            Console.Error.WriteLine("⚠️  --message/-m has been removed.");
+            Console.Error.WriteLine("   Write your reply to a file and use --file instead.");
+            Console.Error.WriteLine("   Usage: freshdesk ticket reply <id> --file reply.md");
+            Console.Error.WriteLine("");
+            return 1;
         }
     }
 
-    if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(message))
+    if (args.Length < 3)
     {
         Console.WriteLine("Error: --file is required for replies.");
         Console.WriteLine("Run 'freshdesk ticket reply --help' for usage information.");
         return 1;
     }
 
-    if (!string.IsNullOrEmpty(filePath))
+    // Find --file flag
+    string? filePath = null;
+    for (int i = 1; i < args.Length; i++)
     {
-        if (!File.Exists(filePath))
+        if ((args[i] == "--file" || args[i] == "-f") && i + 1 < args.Length)
         {
-            Console.WriteLine($"File not found: {filePath}");
-            return 1;
+            filePath = args[++i];
+            break;
         }
-
-        message = await File.ReadAllTextAsync(filePath);
     }
 
-    message = NormalizeLineEndings(message!);
+    if (string.IsNullOrEmpty(filePath))
+    {
+        Console.WriteLine("Error: --file is required for replies.");
+        Console.WriteLine("Run 'freshdesk ticket reply --help' for usage information.");
+        return 1;
+    }
+
+    if (!File.Exists(filePath))
+    {
+        Console.WriteLine($"File not found: {filePath}");
+        return 1;
+    }
+
+    string message = await File.ReadAllTextAsync(filePath);
+    message = NormalizeLineEndings(message);
 
     if (string.IsNullOrEmpty(message))
     {
@@ -973,50 +979,48 @@ static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.Fre
         return 1;
     }
 
-    string? filePath = null;
-    string? message = null;
-
-    for (int i = 1; i < args.Length; i++)
+    // Scan for --message/-m usage and redirect users
+    foreach (var arg in args)
     {
-        switch (args[i])
+        if (arg == "--message" || arg == "-m")
         {
-            case "--message":
-            case "-m":
-                if (i + 1 < args.Length)
-                {
-                    message = args[++i];
-                    Console.Error.WriteLine("Warning: --message is deprecated. Use --file instead. This will be removed in a future version.");
-                }
-                break;
-            case "--file":
-            case "-f":
-                if (i + 1 < args.Length)
-                    filePath = args[++i];
-                break;
+            Console.Error.WriteLine("");
+            Console.Error.WriteLine("⚠️  --message/-m has been removed.");
+            Console.Error.WriteLine("   Write your note to a file and use --file instead.");
+            Console.Error.WriteLine("   Usage: freshdesk ticket note <id> --file note.md");
+            Console.Error.WriteLine("");
+            return 1;
         }
     }
 
-    if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(message))
+    string? filePath = null;
+
+    for (int i = 1; i < args.Length; i++)
+    {
+        if ((args[i] == "--file" || args[i] == "-f") && i + 1 < args.Length)
+        {
+            filePath = args[++i];
+            break;
+        }
+    }
+
+    if (string.IsNullOrEmpty(filePath))
     {
         Console.WriteLine("Error: --file is required for notes.");
         Console.WriteLine("Run 'freshdesk ticket note --help' for usage information.");
         return 1;
     }
 
-    if (!string.IsNullOrEmpty(filePath))
+    if (!File.Exists(filePath))
     {
-        if (!File.Exists(filePath))
-        {
-            Console.WriteLine($"File not found: {filePath}");
-            return 1;
-        }
-
-        message = await File.ReadAllTextAsync(filePath);
+        Console.WriteLine($"File not found: {filePath}");
+        return 1;
     }
 
-    message = NormalizeLineEndings(message!);
+    string noteText = await File.ReadAllTextAsync(filePath);
+    noteText = NormalizeLineEndings(noteText);
 
-    if (string.IsNullOrEmpty(message))
+    if (string.IsNullOrEmpty(noteText))
     {
         Console.WriteLine("No message provided (file is empty).");
         return 1;
@@ -1025,7 +1029,7 @@ static async Task<int> HandleTicketNote(string[] args, FreshdeskCLI.Services.Fre
     try
     {
         Console.WriteLine($"Adding internal note to ticket #{ticketId}...");
-        var conversation = await client.ReplyToTicketAsync(ticketId, message, isPrivate: true);
+        var conversation = await client.ReplyToTicketAsync(ticketId, noteText, isPrivate: true);
         Console.WriteLine($"✓ Internal note added successfully!");
         Console.WriteLine($"  Note ID: {conversation.Id}");
         Console.WriteLine($"  Created: {conversation.CreatedAt:yyyy-MM-dd HH:mm:ss}");
@@ -2026,6 +2030,7 @@ static async Task<int> HandleContactCommand(string[] args, bool isReadOnly = fal
         "update" => isReadOnly ? ShowReadOnlyError("contact update") : await HandleContactUpdate(args[1..], client),
         "search" => await HandleContactSearch(args[1..], client),
         "delete" => isReadOnly ? ShowReadOnlyError("contact delete") : await HandleContactDelete(args[1..], client),
+        "send-invite" => isReadOnly ? ShowReadOnlyError("contact send-invite") : await HandleContactSendInvite(args[1..], client),
         _ => ShowUnknownCommand($"contact {args[0]}")
     };
 }
@@ -2040,6 +2045,7 @@ static async Task<int> HandleContactList(string[] args, FreshdeskCLI.Services.Fr
     int page = 1;
     int limit = 30;
     string format = "table";
+    long? companyId = null;
 
     for (int i = 0; i < args.Length; i++)
     {
@@ -2056,10 +2062,20 @@ static async Task<int> HandleContactList(string[] args, FreshdeskCLI.Services.Fr
             case "--format" when i + 1 < args.Length:
                 format = args[++i];
                 break;
+            case "--company" or "--company-id":
+                if (i + 1 >= args.Length || !long.TryParse(args[i + 1], out var c) || c <= 0)
+                {
+                    Console.Error.WriteLine("Error: --company requires a positive numeric company ID.");
+                    return 1;
+                }
+
+                companyId = c;
+                i++;
+                break;
         }
     }
 
-    var contacts = await client.GetContactsAsync(page, limit);
+    var contacts = await client.GetContactsAsync(page, limit, companyId);
     OutputFormatter.PrintContacts(contacts, format);
     return 0;
 }
@@ -2104,6 +2120,7 @@ static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.
 
     var contactData = new Dictionary<string, object>();
     var customFields = new Dictionary<string, object>();
+    var sendInvite = false;
 
     for (int i = 0; i < args.Length; i++)
     {
@@ -2143,6 +2160,9 @@ static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.
             case "--no-view-all-tickets":
                 contactData["view_all_tickets"] = false;
                 break;
+            case "--send-invite":
+                sendInvite = true;
+                break;
             case "--description" when i + 1 < args.Length:
                 contactData["description"] = args[++i];
                 break;
@@ -2172,6 +2192,22 @@ static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.
     var created = await client.CreateContactAsync(contactData);
     Console.WriteLine($"✓ Contact created successfully!");
     OutputFormatter.PrintContactDetails(created);
+
+    if (sendInvite)
+    {
+        try
+        {
+            await client.SendContactInviteAsync(created.Id);
+            Console.WriteLine($"✓ Activation email sent to contact {created.Id}.");
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.Error.WriteLine($"Contact {created.Id} was created, but sending the activation email failed: {ex.Message}");
+            Console.Error.WriteLine($"Retry with: freshdesk contact send-invite {created.Id}");
+            return 1;
+        }
+    }
+
     return 0;
 }
 
@@ -2347,6 +2383,24 @@ static async Task<int> HandleContactDelete(string[] args, FreshdeskCLI.Services.
 
     await client.DeleteContactAsync(contactId);
     Console.WriteLine($"✓ Contact {contactId} deleted successfully.");
+    return 0;
+}
+
+static async Task<int> HandleContactSendInvite(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("contact", "send-invite");
+    }
+
+    if (args.Length < 1 || !long.TryParse(args[0], out var contactId))
+    {
+        Console.WriteLine("Error: Missing or invalid contact ID.");
+        return 1;
+    }
+
+    await client.SendContactInviteAsync(contactId);
+    Console.WriteLine($"✓ Activation email sent to contact {contactId}.");
     return 0;
 }
 

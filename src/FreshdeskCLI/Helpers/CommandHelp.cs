@@ -159,8 +159,7 @@ public static class CommandHelp
             Description = "Reply to a ticket. The file content is treated as Markdown and converted to HTML with preserved paragraph spacing.",
             Options = new Dictionary<string, string>
             {
-                ["--file, -f <path>"] = "Read reply message from file (required)",
-                ["--message, -m <text>"] = "[Deprecated] Inline reply message; use --file instead"
+                ["--file, -f <path>"] = "Read reply message from file (required)"
             },
             Examples = new[]
             {
@@ -174,8 +173,7 @@ public static class CommandHelp
             Description = "Add an internal note to a ticket. The file content is treated as Markdown and converted to HTML with preserved paragraph spacing.",
             Options = new Dictionary<string, string>
             {
-                ["--file, -f <path>"] = "Read note message from file (required)",
-                ["--message, -m <text>"] = "[Deprecated] Inline note message; use --file instead"
+                ["--file, -f <path>"] = "Read note message from file (required)"
             },
             Examples = new[]
             {
@@ -296,7 +294,8 @@ public static class CommandHelp
                 ["create"] = "Create a new contact",
                 ["update"] = "Update an existing contact",
                 ["search"] = "Search contacts by email or phone",
-                ["delete"] = "Delete a contact"
+                ["delete"] = "Delete a contact",
+                ["send-invite"] = "Send an activation email to a contact"
             }
         },
         ["contact list"] = new CommandHelpInfo
@@ -307,12 +306,14 @@ public static class CommandHelp
             {
                 ["--page, -p <number>"] = "Page number (default: 1)",
                 ["--limit, -l <number>"] = "Items per page (default: 30)",
+                ["--company, --company-id <id>"] = "Filter contacts by company ID",
                 ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
             },
             Examples = new[]
             {
                 "freshdesk contact list",
                 "freshdesk contact list --page 2 --limit 50",
+                "freshdesk contact list --company 12345",
                 "freshdesk contact list --format json"
             }
         },
@@ -349,11 +350,13 @@ public static class CommandHelp
                 ["--no-view-all-tickets"] = "Prevent contact from viewing all company tickets",
                 ["--description <desc>"] = "Contact description",
                 ["--address <address>"] = "Contact address",
-                ["--custom-field <key=value>"] = "Set a custom field (repeatable)"
+                ["--custom-field <key=value>"] = "Set a custom field (repeatable)",
+                ["--send-invite"] = "Send the activation email after the contact is created"
             },
             Examples = new[]
             {
                 "freshdesk contact create --name \"John Doe\" --email john@example.com",
+                "freshdesk contact create --name \"Alice\" --email alice@example.com --send-invite",
                 "freshdesk contact create --name \"Jane\" --email jane@example.com --company 123 --view-all-tickets",
                 "freshdesk contact create --name \"Bob\" --email bob@example.com --job-title \"Engineer\" --phone \"+1234567890\""
             }
@@ -409,6 +412,15 @@ public static class CommandHelp
             Examples = new[]
             {
                 "freshdesk contact delete 123"
+            }
+        },
+        ["contact send-invite"] = new CommandHelpInfo
+        {
+            Usage = "freshdesk contact send-invite <contact-id>",
+            Description = "Send an activation email to an existing contact for email verification",
+            Examples = new[]
+            {
+                "freshdesk contact send-invite 123"
             }
         },
         ["company"] = new CommandHelpInfo

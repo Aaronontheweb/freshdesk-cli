@@ -266,6 +266,9 @@ freshdesk contact list
 # With pagination
 freshdesk contact list --page 2 --limit 50
 
+# Filter by company (alias: --company-id)
+freshdesk contact list --company 12345
+
 # Export as JSON or CSV
 freshdesk contact list --format json
 freshdesk contact list --format csv > contacts.csv
@@ -317,6 +320,12 @@ freshdesk contact create \
   --name "VIP Customer" \
   --email "vip@example.com" \
   --custom-field account_tier="Premium"
+
+# Create a contact and send the activation email
+freshdesk contact create \
+  --name "John Doe" \
+  --email "john@example.com" \
+  --send-invite
 ```
 
 #### Update Contact
@@ -364,6 +373,13 @@ Search matches exact values only. Domain (`@example.com`) and partial matches ar
 ```bash
 # Delete a contact
 freshdesk contact delete 12345
+```
+
+#### Send Activation Email
+
+```bash
+# Send an activation email to an existing contact (PUT /contacts/{id}/send_invite)
+freshdesk contact send-invite 12345
 ```
 
 ### Company Operations
@@ -588,6 +604,7 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 | `contact update <id>` | Update contact details |
 | `contact search` | Find contacts by exact email, phone, or mobile |
 | `contact delete <id>` | Delete a contact |
+| `contact send-invite <id>` | Send an activation email to a contact |
 
 ### Company Commands
 
