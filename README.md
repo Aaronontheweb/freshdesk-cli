@@ -355,9 +355,18 @@ freshdesk contact search --email john@example.com
 # Search by phone
 freshdesk contact search --phone 555-1234
 
-# Export search results
-freshdesk contact search --email john@example.com --format json
+# Search by mobile, combined with other fields (AND)
+freshdesk contact search --email john@example.com --mobile 555-9876
+
+# Machine-readable output for scripts
+freshdesk contact search --email john@example.com --format json | jq '.[].id'
+
+# Pagination: 30 per page, pages 1-10
+freshdesk contact search --phone 555-1234 --page 2
+freshdesk contact search --phone 555-1234 --all --format csv
 ```
+
+Search matches exact values only. Domain (`@example.com`) and partial matches are not supported by the Freshdesk API and return an error. Values may not contain quotes. When more contacts match than are shown, a note goes to stderr so JSON and CSV output stay clean.
 
 #### Delete Contact
 
@@ -593,7 +602,7 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 | `contact get <id>` | Get contact details |
 | `contact create` | Create a new contact |
 | `contact update <id>` | Update contact details |
-| `contact search` | Search contacts by email or phone |
+| `contact search` | Find contacts by exact email, phone, or mobile |
 | `contact delete <id>` | Delete a contact |
 | `contact send-invite <id>` | Send an activation email to a contact |
 
