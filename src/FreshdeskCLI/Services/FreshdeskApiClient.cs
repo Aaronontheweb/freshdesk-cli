@@ -488,9 +488,9 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
     {
         var queryParts = new List<string>();
         if (!string.IsNullOrWhiteSpace(email))
-            queryParts.Add($"email:\"{email}\"");
+            queryParts.Add($"email:{email}");
         if (!string.IsNullOrWhiteSpace(phone))
-            queryParts.Add($"phone:\"{phone}\"");
+            queryParts.Add($"phone:{phone}");
 
         if (queryParts.Count == 0)
             return [];

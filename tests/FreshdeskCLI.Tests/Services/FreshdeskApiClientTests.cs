@@ -663,7 +663,9 @@ public class FreshdeskApiClientTests
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains("/api/v2/search/contacts") && req.RequestUri!.Query.Contains("query=") && req.RequestUri!.Query.Contains("john%40example.com")),
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.RequestUri!.AbsolutePath == "/api/v2/search/contacts" &&
+                    Uri.UnescapeDataString(req.RequestUri!.Query).TrimStart('?') == $"query=\"email:john@example.com\""),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
