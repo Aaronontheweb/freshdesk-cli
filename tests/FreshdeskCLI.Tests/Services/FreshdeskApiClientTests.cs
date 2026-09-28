@@ -648,18 +648,22 @@ public class FreshdeskApiClientTests
     public async Task SearchContactsAsync_ByEmail_ReturnsContacts()
     {
         // Arrange
-        var contacts = new[]
+        var searchResult = new ContactSearchResult
         {
-            new Contact { Id = 1, Name = "John Doe", Email = "john@example.com" }
+            Total = 1,
+            Results = new[]
+            {
+                new Contact { Id = 1, Name = "John Doe", Email = "john@example.com" }
+            }
         };
 
-        var json = JsonSerializer.Serialize(contacts, FreshdeskJsonContext.Default.ContactArray);
+        var json = JsonSerializer.Serialize(searchResult, FreshdeskJsonContext.Default.ContactSearchResult);
 
         _mockHttpHandler
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains("email=john%40example.com")),
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery.Contains("/api/v2/search/contacts") && req.RequestUri!.Query.Contains("query=") && req.RequestUri!.Query.Contains("john%40example.com")),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -674,6 +678,15 @@ public class FreshdeskApiClientTests
         Assert.NotNull(result);
         Assert.Single(result);
         Assert.Equal("john@example.com", result[0].Email);
+    }
+
+    [Fact]
+    public async Task SearchContactsAsync_EmptyQuery_ReturnsEmpty()
+    {
+        var result = await _client.SearchContactsAsync(email: null, phone: null);
+
+        Assert.NotNull(result);
+        Assert.Empty(result);
     }
 
     [Fact]

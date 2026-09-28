@@ -384,7 +384,7 @@ public static class CommandHelp
         ["contact search"] = new CommandHelpInfo
         {
             Usage = "freshdesk contact search [options]",
-            Description = "Search for contacts by email or phone",
+            Description = "Search for contacts by email or phone (full-text search via /search/contacts)",
             Options = new Dictionary<string, string>
             {
                 ["--email <email>"] = "Search by email address",

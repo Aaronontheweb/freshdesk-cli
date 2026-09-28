@@ -486,22 +486,25 @@ public sealed class FreshdeskApiClient : IFreshdeskApiClient, IDisposable
 
     public async Task<Contact[]> SearchContactsAsync(string? email = null, string? phone = null, CancellationToken cancellationToken = default)
     {
-        var queryParams = new List<string>();
+        var queryParts = new List<string>();
         if (!string.IsNullOrWhiteSpace(email))
-            queryParams.Add($"email={Uri.EscapeDataString(email)}");
+            queryParts.Add($"email:\"{email}\"");
         if (!string.IsNullOrWhiteSpace(phone))
-            queryParams.Add($"phone={Uri.EscapeDataString(phone)}");
+            queryParts.Add($"phone:\"{phone}\"");
 
-        if (queryParams.Count == 0)
+        if (queryParts.Count == 0)
             return [];
 
-        var response = await _httpClient.GetAsync($"/api/v2/contacts?{string.Join("&", queryParams)}", cancellationToken);
+        var query = string.Join(" AND ", queryParts);
+        var endpoint = $"/api/v2/search/contacts?query=\"{Uri.EscapeDataString(query)}\"";
+        var response = await _httpClient.GetAsync(endpoint, cancellationToken);
         if (response.StatusCode == HttpStatusCode.NotFound)
             return [];
 
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        return JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ContactArray) ?? [];
+        var searchResult = JsonSerializer.Deserialize(json, FreshdeskJsonContext.Default.ContactSearchResult);
+        return searchResult?.Results ?? [];
     }
 
     public async Task DeleteContactAsync(long id, CancellationToken cancellationToken = default)
