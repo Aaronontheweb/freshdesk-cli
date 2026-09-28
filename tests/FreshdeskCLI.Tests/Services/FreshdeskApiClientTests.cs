@@ -488,6 +488,57 @@ public class FreshdeskApiClientTests
     }
 
     [Fact]
+    public async Task GetContactsAsync_WithCompanyId_UsesCompanyIdFilter()
+    {
+        var contacts = new[]
+        {
+            new Contact { Id = 1, Name = "John Doe", Email = "john@example.com", CompanyId = 100 }
+        };
+        var json = JsonSerializer.Serialize(contacts, FreshdeskJsonContext.Default.ContactArray);
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery == "/api/v2/contacts?page=1&per_page=30&company_id=100"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(json)
+            });
+
+        var result = await _client.GetContactsAsync(companyId: 100);
+
+        Assert.Single(result);
+        Assert.Equal(100, result[0].CompanyId);
+    }
+
+    [Fact]
+    public async Task GetContactsAsync_WithoutCompanyId_OmitsCompanyIdFilter()
+    {
+        string? requestedPath = null;
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => requestedPath = req.RequestUri!.PathAndQuery)
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent("[]")
+            });
+
+        await _client.GetContactsAsync();
+
+        Assert.Equal("/api/v2/contacts?page=1&per_page=30", requestedPath);
+        Assert.DoesNotContain("company_id", requestedPath);
+    }
+
+    [Fact]
     public async Task GetContactAsync_ReturnsContact_WhenFound()
     {
         // Arrange
