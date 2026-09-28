@@ -2057,16 +2057,20 @@ static async Task<int> HandleContactList(string[] args, FreshdeskCLI.Services.Fr
             case "--format" when i + 1 < args.Length:
                 format = args[++i];
                 break;
-            case "--company" or "--company-id" when i + 1 < args.Length && long.TryParse(args[i + 1], out var c):
+            case "--company" or "--company-id":
+                if (i + 1 >= args.Length || !long.TryParse(args[i + 1], out var c) || c <= 0)
+                {
+                    Console.Error.WriteLine("Error: --company requires a positive numeric company ID.");
+                    return 1;
+                }
+
                 companyId = c;
                 i++;
                 break;
         }
     }
 
-    var contacts = companyId.HasValue
-        ? await client.GetCompanyContactsAsync(companyId.Value, page, limit)
-        : await client.GetContactsAsync(page, limit);
+    var contacts = await client.GetContactsAsync(page, limit, companyId);
     OutputFormatter.PrintContacts(contacts, format);
     return 0;
 }

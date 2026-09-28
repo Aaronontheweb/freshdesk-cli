@@ -307,7 +307,7 @@ public static class CommandHelp
             {
                 ["--page, -p <number>"] = "Page number (default: 1)",
                 ["--limit, -l <number>"] = "Items per page (default: 30)",
-                ["--company <id>"] = "Filter contacts by company ID",
+                ["--company, --company-id <id>"] = "Filter contacts by company ID",
                 ["--format, -f <format>"] = "Output format (table, json, csv) (default: table)"
             },
             Examples = new[]

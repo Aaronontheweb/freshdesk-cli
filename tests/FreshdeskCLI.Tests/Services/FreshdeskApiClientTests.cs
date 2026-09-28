@@ -488,22 +488,19 @@ public class FreshdeskApiClientTests
     }
 
     [Fact]
-    public async Task GetCompanyContactsAsync_ReturnsContactsArray()
+    public async Task GetContactsAsync_WithCompanyId_UsesCompanyIdFilter()
     {
-        // Arrange
         var contacts = new[]
         {
-            new Contact { Id = 1, Name = "John Doe", Email = "john@example.com", CompanyId = 100, ViewAllTickets = true },
-            new Contact { Id = 2, Name = "Jane Smith", Email = "jane@example.com", CompanyId = 100, ViewAllTickets = false }
+            new Contact { Id = 1, Name = "John Doe", Email = "john@example.com", CompanyId = 100 }
         };
-
         var json = JsonSerializer.Serialize(contacts, FreshdeskJsonContext.Default.ContactArray);
 
         _mockHttpHandler
             .Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
-                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery == "/api/v2/companies/100/contacts?page=1&per_page=30"),
+                ItExpr.Is<HttpRequestMessage>(req => req.RequestUri!.PathAndQuery == "/api/v2/contacts?page=1&per_page=30&company_id=100"),
                 ItExpr.IsAny<CancellationToken>())
             .ReturnsAsync(new HttpResponseMessage
             {
@@ -511,15 +508,34 @@ public class FreshdeskApiClientTests
                 Content = new StringContent(json)
             });
 
-        // Act
-        var result = await _client.GetCompanyContactsAsync(100);
+        var result = await _client.GetContactsAsync(companyId: 100);
 
-        // Assert
-        Assert.NotNull(result);
-        Assert.Equal(2, result.Length);
-        Assert.Equal("John Doe", result[0].Name);
-        Assert.True(result[0].ViewAllTickets);
+        Assert.Single(result);
         Assert.Equal(100, result[0].CompanyId);
+    }
+
+    [Fact]
+    public async Task GetContactsAsync_WithoutCompanyId_OmitsCompanyIdFilter()
+    {
+        string? requestedPath = null;
+
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => requestedPath = req.RequestUri!.PathAndQuery)
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent("[]")
+            });
+
+        await _client.GetContactsAsync();
+
+        Assert.Equal("/api/v2/contacts?page=1&per_page=30", requestedPath);
+        Assert.DoesNotContain("company_id", requestedPath);
     }
 
     [Fact]
