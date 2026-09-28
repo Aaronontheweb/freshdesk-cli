@@ -749,6 +749,42 @@ public class FreshdeskApiClientTests
     }
 
     [Fact]
+    public async Task SendContactInviteAsync_SendsPutToSendInviteEndpoint()
+    {
+        HttpRequestMessage? captured = null;
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>())
+            .Callback<HttpRequestMessage, CancellationToken>((req, _) => captured = req)
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.NoContent });
+
+        await _client.SendContactInviteAsync(404);
+
+        Assert.NotNull(captured);
+        Assert.Equal(HttpMethod.Put, captured!.Method);
+        Assert.Equal("/api/v2/contacts/404/send_invite", captured.RequestUri!.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task SendContactInviteAsync_ThrowsOnNotFound()
+    {
+        _mockHttpHandler
+            .Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Put &&
+                    req.RequestUri!.PathAndQuery == "/api/v2/contacts/999/send_invite"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage { StatusCode = HttpStatusCode.NotFound });
+
+        await Assert.ThrowsAsync<HttpRequestException>(() => _client.SendContactInviteAsync(999));
+    }
+
+    [Fact]
     public async Task GetCompaniesAsync_ReturnsCompaniesArray()
     {
         // Arrange

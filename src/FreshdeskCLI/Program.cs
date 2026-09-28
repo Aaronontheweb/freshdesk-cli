@@ -150,6 +150,7 @@ static void ShowHelp(string? versionInfo = null)
     Console.WriteLine("  contact update    Update a contact");
     Console.WriteLine("  contact search    Search for contacts");
     Console.WriteLine("  contact delete    Delete a contact");
+    Console.WriteLine("  contact send-invite  Send an activation email to a contact");
     Console.WriteLine("  company list      List companies");
     Console.WriteLine("  company get       Get company details");
     Console.WriteLine("  company create    Create a new company");
@@ -2029,6 +2030,7 @@ static async Task<int> HandleContactCommand(string[] args, bool isReadOnly = fal
         "update" => isReadOnly ? ShowReadOnlyError("contact update") : await HandleContactUpdate(args[1..], client),
         "search" => await HandleContactSearch(args[1..], client),
         "delete" => isReadOnly ? ShowReadOnlyError("contact delete") : await HandleContactDelete(args[1..], client),
+        "send-invite" => isReadOnly ? ShowReadOnlyError("contact send-invite") : await HandleContactSendInvite(args[1..], client),
         _ => ShowUnknownCommand($"contact {args[0]}")
     };
 }
@@ -2118,6 +2120,7 @@ static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.
 
     var contactData = new Dictionary<string, object>();
     var customFields = new Dictionary<string, object>();
+    var sendInvite = false;
 
     for (int i = 0; i < args.Length; i++)
     {
@@ -2157,6 +2160,9 @@ static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.
             case "--no-view-all-tickets":
                 contactData["view_all_tickets"] = false;
                 break;
+            case "--send-invite":
+                sendInvite = true;
+                break;
             case "--description" when i + 1 < args.Length:
                 contactData["description"] = args[++i];
                 break;
@@ -2186,6 +2192,22 @@ static async Task<int> HandleContactCreate(string[] args, FreshdeskCLI.Services.
     var created = await client.CreateContactAsync(contactData);
     Console.WriteLine($"✓ Contact created successfully!");
     OutputFormatter.PrintContactDetails(created);
+
+    if (sendInvite)
+    {
+        try
+        {
+            await client.SendContactInviteAsync(created.Id);
+            Console.WriteLine($"✓ Activation email sent to contact {created.Id}.");
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.Error.WriteLine($"Contact {created.Id} was created, but sending the activation email failed: {ex.Message}");
+            Console.Error.WriteLine($"Retry with: freshdesk contact send-invite {created.Id}");
+            return 1;
+        }
+    }
+
     return 0;
 }
 
@@ -2313,6 +2335,24 @@ static async Task<int> HandleContactDelete(string[] args, FreshdeskCLI.Services.
 
     await client.DeleteContactAsync(contactId);
     Console.WriteLine($"✓ Contact {contactId} deleted successfully.");
+    return 0;
+}
+
+static async Task<int> HandleContactSendInvite(string[] args, FreshdeskCLI.Services.FreshdeskApiClient client)
+{
+    if (CommandHelp.CheckForHelp(args))
+    {
+        return CommandHelp.ShowHelpAndReturn("contact", "send-invite");
+    }
+
+    if (args.Length < 1 || !long.TryParse(args[0], out var contactId))
+    {
+        Console.WriteLine("Error: Missing or invalid contact ID.");
+        return 1;
+    }
+
+    await client.SendContactInviteAsync(contactId);
+    Console.WriteLine($"✓ Activation email sent to contact {contactId}.");
     return 0;
 }
 

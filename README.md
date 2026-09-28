@@ -320,6 +320,12 @@ freshdesk contact create \
   --name "VIP Customer" \
   --email "vip@example.com" \
   --custom-field account_tier="Premium"
+
+# Create a contact and send the activation email
+freshdesk contact create \
+  --name "John Doe" \
+  --email "john@example.com" \
+  --send-invite
 ```
 
 #### Update Contact
@@ -358,6 +364,13 @@ freshdesk contact search --email john@example.com --format json
 ```bash
 # Delete a contact
 freshdesk contact delete 12345
+```
+
+#### Send Activation Email
+
+```bash
+# Send an activation email to an existing contact (PUT /contacts/{id}/send_invite)
+freshdesk contact send-invite 12345
 ```
 
 ### Company Operations
@@ -582,6 +595,7 @@ freshdesk ticket list --format json | jq '.[] | {id, subject, status}'
 | `contact update <id>` | Update contact details |
 | `contact search` | Search contacts by email or phone |
 | `contact delete <id>` | Delete a contact |
+| `contact send-invite <id>` | Send an activation email to a contact |
 
 ### Company Commands
 
