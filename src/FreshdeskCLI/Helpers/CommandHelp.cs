@@ -159,8 +159,7 @@ public static class CommandHelp
             Description = "Reply to a ticket. The file content is treated as Markdown and converted to HTML with preserved paragraph spacing.",
             Options = new Dictionary<string, string>
             {
-                ["--file, -f <path>"] = "Read reply message from file (required)",
-                ["--message, -m <text>"] = "[Deprecated] Inline reply message; use --file instead"
+                ["--file, -f <path>"] = "Read reply message from file (required)"
             },
             Examples = new[]
             {
@@ -174,8 +173,7 @@ public static class CommandHelp
             Description = "Add an internal note to a ticket. The file content is treated as Markdown and converted to HTML with preserved paragraph spacing.",
             Options = new Dictionary<string, string>
             {
-                ["--file, -f <path>"] = "Read note message from file (required)",
-                ["--message, -m <text>"] = "[Deprecated] Inline note message; use --file instead"
+                ["--file, -f <path>"] = "Read note message from file (required)"
             },
             Examples = new[]
             {
